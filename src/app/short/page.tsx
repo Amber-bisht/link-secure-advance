@@ -60,9 +60,9 @@ export default function ShortPage() {
                                 value={version}
                                 onChange={(e) => setVersion(e.target.value as Version)}
                             >
-                                <option value="base">Base (Original Base64)</option>
-                                <option value="v1">V1 (ROT13 + Base64)</option>
-                                <option value="v2">V2 (XOR + Base64)</option>
+                                <option value="base">v0</option>
+                                <option value="v1">V1 </option>
+                                <option value="v2">V2 </option>
                             </select>
                         </div>
 
