@@ -1,10 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { encodeLink } from "@/utils/linkWrapper";
+import { encodeLink, encodeLinkV1, encodeLinkV2 } from "@/utils/linkWrapper";
+
+type Version = 'base' | 'v1' | 'v2';
 
 export default function ShortPage() {
     const [url, setUrl] = useState("");
+    const [version, setVersion] = useState<Version>("base");
     const [generatedLink, setGeneratedLink] = useState("");
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -17,11 +20,27 @@ export default function ShortPage() {
             targetUrl = "https://" + targetUrl;
         }
 
-        const slug = encodeLink(targetUrl);
+        // Choose encoder based on version
+        let slug = "";
+        let prefix = "";
+
+        switch (version) {
+            case 'v1':
+                slug = encodeLinkV1(targetUrl);
+                prefix = "v1/";
+                break;
+            case 'v2':
+                slug = encodeLinkV2(targetUrl);
+                prefix = "v2/";
+                break;
+            default:
+                slug = encodeLink(targetUrl);
+                prefix = "";
+        }
+
         // Use window.location.origin to get the current host
         const origin = typeof window !== "undefined" ? window.location.origin : "";
-        // REMOVED /u/ prefix
-        setGeneratedLink(`${origin}/${slug}`);
+        setGeneratedLink(`${origin}/${prefix}${slug}`);
     };
 
     return (
@@ -31,6 +50,22 @@ export default function ShortPage() {
 
                 <div className="w-full max-w-md p-6 bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-gray-200 dark:border-zinc-700">
                     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                        <div>
+                            <label htmlFor="version-select" className="block text-sm font-medium mb-1">
+                                Encoding Version
+                            </label>
+                            <select
+                                id="version-select"
+                                className="w-full p-3 rounded-lg border border-gray-300 dark:border-zinc-600 bg-transparent focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                value={version}
+                                onChange={(e) => setVersion(e.target.value as Version)}
+                            >
+                                <option value="base">Base (Original Base64)</option>
+                                <option value="v1">V1 (ROT13 + Base64)</option>
+                                <option value="v2">V2 (XOR + Base64)</option>
+                            </select>
+                        </div>
+
                         <div>
                             <label htmlFor="url-input" className="block text-sm font-medium mb-1">
                                 Enter URL to wrap
