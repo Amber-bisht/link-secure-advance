@@ -11,7 +11,7 @@ export default function Home() {
         >
           unlocked - @happySaturday_bitch
         </a>
-        {' '}- If Want To buy paid project - dm me
+        {' '}- Want to build any paid project - dm me
       </h1>
     </main>
   );
