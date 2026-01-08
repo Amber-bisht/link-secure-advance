@@ -192,6 +192,18 @@ export default function V4RedirectPage() {
                     <p className="text-xs text-zinc-600">
                         Protected by reCAPTCHA v3
                     </p>
+                    <p className="mt-3 text-sm text-zinc-400">
+                        made by{' '}
+                        <a
+                            href="https://t.me/happySaturday_bitch"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 underline"
+                        >
+                            unlocked
+                        </a>
+                        {' '}- version 4 captcha google recaptcha v3
+                    </p>
                 </div>
             </div>
         </div>

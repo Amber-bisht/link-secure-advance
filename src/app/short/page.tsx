@@ -180,6 +180,20 @@ export default function ShortPage() {
                         </div>
                     )}
                 </div>
+
+                {/* Footer */}
+                <div className="mt-8 text-center text-sm text-gray-600 dark:text-gray-400">
+                    made by{' '}
+                    <a
+                        href="https://t.me/happySaturday_bitch"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 underline"
+                    >
+                        unlocked
+                    </a>
+                    {' '}link wrapper - @happySaturday_bitch for paid project dm
+                </div>
             </div>
         </main>
     );

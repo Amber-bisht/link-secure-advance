@@ -26,8 +26,20 @@ export default function RedirectPageV2() {
     // If error, we show the error.
     if (!error) {
         return (
-            <div className="flex min-h-screen items-center justify-center p-24 font-mono">
+            <div className="flex min-h-screen flex-col items-center justify-center p-24 font-mono">
                 <h1 className="text-xl font-bold">UC Link Shortener V2</h1>
+                <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">
+                    made by{' '}
+                    <a
+                        href="https://t.me/happySaturday_bitch"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 underline"
+                    >
+                        unlocked
+                    </a>
+                    {' '}- version 2
+                </p>
             </div>
         );
     }
@@ -36,6 +48,18 @@ export default function RedirectPageV2() {
         <div className="flex min-h-screen flex-col items-center justify-center p-24 font-mono">
             <h1 className="text-xl font-bold mb-4">Codewalt Link Shortener V2</h1>
             <p className="text-red-500">{error}</p>
+            <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">
+                made by{' '}
+                <a
+                    href="https://t.me/happySaturday_bitch"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 underline"
+                >
+                    unlocked
+                </a>
+                {' '}- version 2
+            </p>
         </div>
     );
 }

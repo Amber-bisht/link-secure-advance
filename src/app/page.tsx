@@ -1,7 +1,18 @@
 export default function Home() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-white dark:bg-black text-black dark:text-white">
-      <h1 className="text-2xl font-mono">made by unlocked coding</h1>
+      <h1 className="text-2xl font-mono">
+        made by{' '}
+        <a
+          href="https://t.me/happySaturday_bitch"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 underline"
+        >
+          unlocked
+        </a>
+        {' '}- @happySaturday_bitch - tg username for paid project dm
+      </h1>
     </main>
   );
 }
