@@ -126,15 +126,21 @@ export default function V4RedirectPage() {
     }, [slug, router]);
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-zinc-900">
-            <div className="max-w-md w-full p-8 bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-gray-200 dark:border-zinc-700">
+        <div className="flex min-h-screen items-center justify-center bg-black">
+            <div className="max-w-md w-full p-8 bg-zinc-900 rounded-xl shadow-2xl border border-zinc-800">
+                {/* Unlocked Logo/Title */}
+                <div className="text-center mb-6">
+                    <h1 className="text-2xl font-bold text-white mb-1">🔓 Unlocked</h1>
+                    <p className="text-xs text-zinc-500">Secure Link Verification</p>
+                </div>
+
                 {status === 'loading' && (
                     <div className="text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
+                        <h2 className="text-xl font-semibold text-white mb-2">
                             Loading...
                         </h2>
-                        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                        <p className="text-sm text-zinc-400">
                             Preparing secure redirect
                         </p>
                     </div>
@@ -142,11 +148,11 @@ export default function V4RedirectPage() {
 
                 {status === 'verifying' && (
                     <div className="text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
+                        <h2 className="text-xl font-semibold text-white mb-2">
                             Verifying...
                         </h2>
-                        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                        <p className="text-sm text-zinc-400">
                             Checking security verification
                         </p>
                     </div>
@@ -154,11 +160,11 @@ export default function V4RedirectPage() {
 
                 {status === 'redirecting' && (
                     <div className="text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-                        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
+                        <h2 className="text-xl font-semibold text-white mb-2">
                             Redirecting...
                         </h2>
-                        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                        <p className="text-sm text-zinc-400">
                             Taking you to your destination
                         </p>
                     </div>
@@ -167,15 +173,15 @@ export default function V4RedirectPage() {
                 {status === 'error' && (
                     <div className="text-center">
                         <div className="text-red-500 text-5xl mb-4">⚠️</div>
-                        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
+                        <h2 className="text-xl font-semibold text-white mb-2">
                             Verification Failed
                         </h2>
-                        <p className="text-sm text-red-600 dark:text-red-400 mb-4">
+                        <p className="text-sm text-red-400 mb-4">
                             {error}
                         </p>
                         <button
                             onClick={() => router.push('/')}
-                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
                         >
                             Go to Home
                         </button>
@@ -183,7 +189,7 @@ export default function V4RedirectPage() {
                 )}
 
                 <div className="mt-6 text-center">
-                    <p className="text-xs text-zinc-500 dark:text-zinc-500">
+                    <p className="text-xs text-zinc-600">
                         Protected by reCAPTCHA v3
                     </p>
                 </div>
