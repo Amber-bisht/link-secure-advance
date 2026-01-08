@@ -9,9 +9,9 @@ export default function Home() {
           rel="noopener noreferrer"
           className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 underline"
         >
-          unlocked
+          unlocked - @happySaturday_bitch
         </a>
-        {' '}- @happySaturday_bitch - tg username for paid project dm
+        {' '}- If Want To buy paid project - dm me
       </h1>
     </main>
   );

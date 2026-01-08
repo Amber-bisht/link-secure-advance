@@ -27,7 +27,7 @@ export default function RedirectPageV1() {
     if (!error) {
         return (
             <div className="flex min-h-screen flex-col items-center justify-center p-24 font-mono">
-                <h1 className="text-xl font-bold">UC Link Shortener V1</h1>
+                <h1 className="text-xl font-bold">Unlocked Link Shortener V1</h1>
                 <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">
                     made by{' '}
                     <a
@@ -46,7 +46,7 @@ export default function RedirectPageV1() {
 
     return (
         <div className="flex min-h-screen flex-col items-center justify-center p-24 font-mono">
-            <h1 className="text-xl font-bold mb-4">Codewalt Link Shortener V1</h1>
+            <h1 className="text-xl font-bold mb-4">Unlocked Link Shortener V1</h1>
             <p className="text-red-500">{error}</p>
             <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">
                 made by{' '}
