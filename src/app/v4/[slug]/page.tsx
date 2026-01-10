@@ -73,6 +73,9 @@ export default function V4RedirectPage() {
                         });
                     }
 
+                    // Add a small delay to allow for behavioral tracking (prevent "too fast" penalty)
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+
                     // Execute Custom CAPTCHA
                     token = (window as any).CustomCaptchaV3.execute(slug, 'redirect');
                 } else {
