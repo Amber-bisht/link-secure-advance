@@ -44,20 +44,25 @@ export async function POST(req: Request) {
             }, { status: 403 });
         }
 
-        // 4. Generate Session Token
+        // 4. Capture IP Address
+        const forwarded = req.headers.get('x-forwarded-for');
+        const ip = forwarded ? forwarded.split(',')[0] : '127.0.0.1';
+
+        // 5. Generate Session Token
         const token = crypto.randomBytes(16).toString('hex');
         await Session.create({
             token,
             targetUrl: link.targetUrl, // Get target from DB
+            ipAddress: ip,
         });
 
-        // 5. Construct Resolution URL
+        // 6. Construct Resolution URL (Frontend Page)
         const host = req.headers.get('host');
         const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https';
         const baseUrl = `${protocol}://${host}`;
-        const resolveUrl = `${baseUrl}/api/v5/resolve?token=${token}`;
+        const resolveUrl = `${baseUrl}/v5/resolve/${token}`;
 
-        // 6. Call LinkShortify API (STRICTLY Using Owner's Key)
+        // 7. Call LinkShortify API (STRICTLY Using Owner's Key)
         const shortenerKey = owner.linkShortifyKey;
 
         if (!shortenerKey) {
