@@ -44,11 +44,6 @@ export default function ShortPage() {
                     setIsExpired(new Date(data.validUntil) < new Date());
                 }
                 setHasKey(data.hasKey);
-
-                // Auto-show settings if key is missing and they are in advanced mode or trying to use v5
-                if (!data.hasKey && (category === 'advanced' || version === 'v5')) {
-                    setShowSettings(true);
-                }
             });
             // @ts-ignore
             setApiKeyInput(session.user.linkShortifyKey || '');
