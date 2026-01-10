@@ -43,9 +43,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     events: {
         async createUser({ user }) {
             try {
-                // Set default validity to 2 days from now
+                // Set default validity to 0 days from now (expired by default)
                 const validUntil = new Date();
-                validUntil.setDate(validUntil.getDate() + 2);
+                // validUntil.setDate(validUntil.getDate() + 0); // No trial
 
                 const client = await clientPromise;
                 const users = client.db().collection("users");
