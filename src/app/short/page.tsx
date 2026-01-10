@@ -224,10 +224,7 @@ export default function ShortPage() {
             {/* Premium Header */}
             <nav className="z-20 w-full max-w-7xl px-6 py-6 flex items-center justify-between border-b border-white/5 bg-black/20 backdrop-blur-lg sticky top-0">
                 <div className="flex items-center gap-2 group cursor-pointer" onClick={() => window.location.reload()}>
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                        <Link2 className="w-6 h-6 text-white" />
-                    </div>
-                    <span className="font-bold text-xl tracking-tight hidden sm:block">Asprin Links</span>
+                    <span className="font-bold text-xl tracking-tight">links.asprin.dev</span>
                 </div>
 
                 <div className="flex items-center gap-3">
