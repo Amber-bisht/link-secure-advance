@@ -72,7 +72,7 @@ export default function Home() {
 
 
           <motion.h1 variants={fadeIn} className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-white to-white/60">
-            A secure wrapper for link shorteners that actually <span className="text-indigo-400">get bypassed</span>
+            A secure wrapper that protects your short links from <span className="text-indigo-400">bypass attempts</span>
           </motion.h1>
 
           <motion.p variants={fadeIn} className="text-lg md:text-xl text-neutral-400 max-w-2xl leading-relaxed">
