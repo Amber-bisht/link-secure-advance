@@ -27,7 +27,7 @@ export default function RedirectPage() {
     if (!error) {
         return (
             <div className="flex min-h-screen flex-col items-center justify-center p-24 font-mono">
-                <h1 className="text-xl font-bold">Unlocked Link Shortener</h1>
+                <h1 className="text-xl font-bold">links.asprin.dev - A Secure Link Shortener Wrapper</h1>
                 <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">
                     made by{' '}
                     <a
@@ -36,7 +36,7 @@ export default function RedirectPage() {
                         rel="noopener noreferrer"
                         className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 underline"
                     >
-                        unlocked
+                        asprin.de
                     </a>
                     {' '}- version original
                 </p>

@@ -130,7 +130,7 @@ export default function V4RedirectPage() {
             <div className="max-w-md w-full p-8 bg-zinc-900 rounded-xl shadow-2xl border border-zinc-800">
                 {/* Unlocked Logo/Title */}
                 <div className="text-center mb-6">
-                    <h1 className="text-2xl font-bold text-white mb-1">🔓 Unlocked</h1>
+                    <h1 className="text-2xl font-bold text-white mb-1">🔓 links.asprin.dev</h1>
                     <p className="text-xs text-zinc-500">Secure Link Verification</p>
                 </div>
 
@@ -200,7 +200,7 @@ export default function V4RedirectPage() {
                             rel="noopener noreferrer"
                             className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 underline"
                         >
-                            unlocked
+                            asprin dev
                         </a>
                         {' '}- version 4 captcha google recaptcha v3
                     </p>

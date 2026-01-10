@@ -104,7 +104,7 @@ export default function ShortPage() {
     return (
         <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-gray-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100">
             <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex flex-col gap-10">
-                <h1 className="text-4xl font-bold mb-8 text-center">Link Wrapper</h1>
+                <h1 className="text-4xl font-bold mb-8 text-center">links.asprin.dev</h1>
 
                 <div className="w-full max-w-md p-6 bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-gray-200 dark:border-zinc-700">
                     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -190,7 +190,7 @@ export default function ShortPage() {
                         rel="noopener noreferrer"
                         className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 underline"
                     >
-                        unlocked
+                        asprin dev
                     </a>
                     {' '}link wrapper - @happySaturday_bitch for paid project dm
                 </div>
