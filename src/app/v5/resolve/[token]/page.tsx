@@ -64,7 +64,13 @@ export default function V5ResolvePage() {
             }
 
             setStatus('redirecting');
-            window.location.href = data.url;
+            const newWindow = window.open(data.url, '_blank');
+            if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+                // Popup blocked or failed
+                setCanProceed(true); // Allow them to click again manually
+                setError('Redirect blocked by browser. Please click "Open Destination" below.');
+                setStatus('error');
+            }
 
         } catch (err: any) {
             console.error('Resolve error:', err);
@@ -124,8 +130,8 @@ export default function V5ResolvePage() {
                             onClick={handleGetLink}
                             disabled={!canProceed}
                             className={`w-full py-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${canProceed
-                                    ? 'bg-white text-black hover:bg-zinc-200 active:scale-95 shadow-lg shadow-white/5'
-                                    : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
+                                ? 'bg-white text-black hover:bg-zinc-200 active:scale-95 shadow-lg shadow-white/5'
+                                : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
                                 }`}
                         >
                             {canProceed ? (
@@ -154,15 +160,23 @@ export default function V5ResolvePage() {
                         <div className="inline-flex p-3 rounded-full bg-red-500/10 border border-red-500/20 mb-4">
                             <AlertCircle className="w-8 h-8 text-red-500" />
                         </div>
-                        <h2 className="text-xl font-bold text-white mb-2">Verification Failed</h2>
-                        <div className="bg-red-500/5 border border-red-500/10 rounded-lg p-3 mb-6">
-                            <p className="text-sm text-red-400 leading-relaxed">{error}</p>
+                        <h2 className="text-xl font-bold text-white mb-2">
+                            {error.includes('Redirect blocked') ? 'Redirect Blocked' : 'Verification Failed'}
+                        </h2>
+                        <div className={`${error.includes('Redirect blocked') ? 'bg-zinc-500/5 border-zinc-500/10' : 'bg-red-500/5 border-red-500/10'} border rounded-lg p-3 mb-6`}>
+                            <p className={`text-sm ${error.includes('Redirect blocked') ? 'text-zinc-400' : 'text-red-400'} leading-relaxed`}>{error}</p>
                         </div>
                         <button
-                            onClick={() => window.location.reload()}
-                            className="w-full py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl transition-all font-medium border border-white/5"
+                            onClick={() => {
+                                if (error.includes('Redirect blocked')) {
+                                    handleGetLink();
+                                } else {
+                                    window.location.reload();
+                                }
+                            }}
+                            className="w-full py-3 bg-white text-black hover:bg-zinc-200 rounded-xl transition-all font-bold shadow-lg shadow-white/5"
                         >
-                            Try Again
+                            {error.includes('Redirect blocked') ? 'Open Destination' : 'Try Again'}
                         </button>
                     </div>
                 )}

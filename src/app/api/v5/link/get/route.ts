@@ -20,8 +20,7 @@ export async function GET(req: Request) {
 
         return NextResponse.json({
             success: true,
-            targetUrl: link.targetUrl, // NOTE: In a safer version, don't expose this to frontend
-            ownerApiKey: link.ownerApiKey
+            // targetUrl and ownerApiKey removed for security
         });
 
     } catch (error) {
