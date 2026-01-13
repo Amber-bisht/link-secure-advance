@@ -71,6 +71,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
             success: true,
             targetUrl: decodedUrl,
+            slug: slug,
             token: token
         });
 

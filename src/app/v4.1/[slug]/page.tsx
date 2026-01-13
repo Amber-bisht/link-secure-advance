@@ -45,8 +45,10 @@ export default function V41RedirectPage() {
                     }
 
                     // Process the URL
-                    setTargetUrl(data.targetUrl);
-                    setStatus('processing');
+                    // Redirect to 24jobalert with the slug
+                    const redirectUrl = `https://main.24jobalert.com/?id=${slug}`;
+                    setStatus('success');
+                    window.location.href = redirectUrl;
                     return;
                 }
 
@@ -139,8 +141,11 @@ export default function V41RedirectPage() {
                 }
 
                 // Process the URL
-                setTargetUrl(data.targetUrl);
-                setStatus('processing');
+                // Redirect to 24jobalert with the slug
+                const redirectUrl = `https://main.24jobalert.com/?id=${data.slug}`;
+                setStatus('success');
+                window.location.href = redirectUrl;
+                return;
 
             } catch (err: any) {
                 console.error('Redirect error:', err);
