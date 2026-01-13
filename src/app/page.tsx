@@ -62,6 +62,40 @@ export default function Home() {
       </motion.nav>
 
       <main className="relative z-10 pt-32 pb-20 px-6 max-w-7xl mx-auto">
+        {/* V4.1 Announcement Banner */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="mb-12 max-w-4xl mx-auto"
+        >
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-600/20 via-violet-600/20 to-purple-600/20 border border-indigo-500/30 backdrop-blur-sm">
+            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-violet-500/10 to-purple-500/10 animate-pulse" />
+            <div className="relative px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <span className="flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                </span>
+                <div className="text-left">
+                  <div className="font-bold text-white text-sm md:text-base">
+                    🎉 TRY OUR ALL NEW V4.1 VERSION
+                  </div>
+                  <div className="text-xs text-indigo-200 font-medium">
+                    NO BYPASS TILL NOW - Enhanced cookie preservation & advanced bot detection
+                  </div>
+                </div>
+              </div>
+              <Link
+                href="/short"
+                className="px-5 py-2 rounded-lg bg-black text-white font-semibold text-sm hover:bg-zinc-900 transition-all hover:scale-105 shadow-lg whitespace-nowrap border border-white/10"
+              >
+                Try V4.1 Now →
+              </Link>
+            </div>
+          </div>
+        </motion.div>
+
         {/* Hero Section */}
         <motion.div
           variants={staggerContainer}
@@ -151,17 +185,29 @@ export default function Home() {
 
               <div className="relative flex flex-col md:flex-row items-center justify-between group">
                 <div className="md:w-1/2" />
-                <div className="absolute left-8 md:left-1/2 w-4 h-4 bg-indigo-500 border-2 border-indigo-300 rounded-full -translate-x-1/2 shadow-[0_0_20px_rgba(99,102,241,0.5)]" />
+                <div className="absolute left-8 md:left-1/2 w-4 h-4 bg-neutral-900 border-2 border-neutral-500 rounded-full -translate-x-1/2 group-hover:border-indigo-500 group-hover:scale-125 transition-all" />
                 <div className="md:w-1/2 flex justify-start md:pl-12 pl-16 w-full">
-                  <div className="bg-neutral-900/80 border border-indigo-500/30 p-4 rounded-xl backdrop-blur-sm max-w-sm w-full shadow-lg shadow-indigo-900/10">
-                    <div className="text-indigo-400 font-mono text-xs mb-1 flex items-center gap-2">
-                      v4 (Current)
-                      <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                    </div>
+                  <div className="bg-neutral-900/80 border border-white/5 p-4 rounded-xl backdrop-blur-sm max-w-sm w-full">
+                    <div className="text-indigo-400 font-mono text-xs mb-1">v4</div>
                     <div className="font-semibold text-white">Captcha-backed validation</div>
                     <div className="text-xs text-neutral-400 mt-1">Google reCAPTCHA v3</div>
                   </div>
                 </div>
+              </div>
+
+              <div className="relative flex flex-col md:flex-row items-center justify-between group">
+                <div className="md:w-1/2 flex justify-start md:justify-end md:pr-12 mb-4 md:mb-0 pl-16 md:pl-0 w-full">
+                  <div className="bg-gradient-to-br from-indigo-900/80 to-violet-900/80 border border-indigo-500/50 p-4 rounded-xl backdrop-blur-sm max-w-sm w-full shadow-xl shadow-indigo-900/20">
+                    <div className="text-indigo-300 font-mono text-xs mb-1 flex items-center gap-2">
+                      v4.1 (Latest)
+                      <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                    </div>
+                    <div className="font-semibold text-white">Cookie preservation + iframe security</div>
+                    <div className="text-xs text-indigo-200 mt-1">No bypass detected yet • Advanced bot filtering</div>
+                  </div>
+                </div>
+                <div className="absolute left-8 md:left-1/2 w-4 h-4 bg-indigo-500 border-2 border-indigo-300 rounded-full -translate-x-1/2 shadow-[0_0_20px_rgba(99,102,241,0.5)] animate-pulse" />
+                <div className="md:w-1/2" />
               </div>
             </div>
           </div>
@@ -175,7 +221,7 @@ export default function Home() {
             &copy; {new Date().getFullYear()} Links by Asprin. All rights reserved.
           </div>
           <div className="flex items-center gap-6 font-mono">
-            <span className="text-xs border border-white/10 px-2 py-1 rounded">v4.0.0</span>
+            <span className="text-xs border border-white/10 px-2 py-1 rounded">v4.1.0</span>
             <a href="https://t.me/happySaturday_bitch" className="hover:text-indigo-400 transition-colors">DM Support</a>
           </div>
         </div>

@@ -6,8 +6,8 @@ import { SessionProvider } from "next-auth/react";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Link V5",
-  description: "Secure Link Shortener",
+  title: "Link BY ASPRIN DEV",
+  description: "Secure Link Shortener By Asprin Dev try to free ",
 };
 
 export default function RootLayout({

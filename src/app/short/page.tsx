@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link2, Copy, CheckCircle, ShieldCheck, Lock, Settings, LogOut, User as UserIcon } from "lucide-react";
 import { signIn, signOut, useSession } from "next-auth/react";
 
-type Version = 'base' | 'v1' | 'v2' | 'v3' | 'v4' | 'v5';
+type Version = 'base' | 'v1' | 'v2' | 'v3' | 'v4' | 'v4.1' | 'v5';
 type Category = 'standard' | 'advanced';
 
 const variants = {
@@ -52,9 +52,9 @@ export default function ShortPage() {
 
     // Update version when category changes to ensure valid selection
     useEffect(() => {
-        if (category === 'standard' && (version === 'v4' || version === 'v5')) {
+        if (category === 'standard' && (version === 'v4' || version === 'v4.1' || version === 'v5')) {
             setVersion('base');
-        } else if (category === 'advanced' && (version !== 'v4' && version !== 'v5')) {
+        } else if (category === 'advanced' && (version !== 'v4' && version !== 'v4.1' && version !== 'v5')) {
             setVersion('v4');
         }
     }, [category]);
@@ -137,9 +137,9 @@ export default function ShortPage() {
             }
 
             // V4 uses server-side API with CAPTCHA
-            if (version === 'v4') {
+            if (version === 'v4' || version === 'v4.1') {
                 if (!session) {
-                    throw new Error("You must be logged in to create V4 links.");
+                    throw new Error("You must be logged in to create V4/V4.1 links.");
                 }
                 if (isExpired) {
                     throw new Error("Your subscription has expired.");
@@ -159,8 +159,9 @@ export default function ShortPage() {
                     { action: 'generate_link' }
                 );
 
-                // Call API
-                const response = await fetch('/api/v4', {
+                // Call appropriate API endpoint
+                const apiEndpoint = version === 'v4.1' ? '/api/v4.1' : '/api/v4';
+                const response = await fetch(apiEndpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ url: targetUrl, captchaToken: token }),
@@ -438,7 +439,7 @@ export default function ShortPage() {
                                                         <>
                                                             {[
                                                                 { id: 'v4', label: 'v4 Captcha', sub: 'Human Verification' },
-                                                                { id: 'v5', label: 'v5 Secure Trap', sub: 'Account Locked' }
+                                                                { id: 'v4.1', label: 'v4.1 Cookie Shield', sub: 'Iframe Protection' }
                                                             ].map((opt) => (
                                                                 <button
                                                                     key={opt.id}
@@ -455,8 +456,8 @@ export default function ShortPage() {
                                                 </div>
                                             </div>
 
-                                            {/* V4/V5 Status Messages */}
-                                            {(version === 'v4' || version === 'v5') && session && validUntil && (
+                                            {/* V4/V4.1/V5 Status Messages */}
+                                            {(version === 'v4' || version === 'v4.1' || version === 'v5') && session && validUntil && (
                                                 <div className={`p-4 rounded-2xl text-sm flex items-center justify-between gap-3 ${isExpired ? 'bg-red-500/10 border border-red-500/20 text-red-500' : 'bg-green-500/10 border border-green-500/20 text-green-500'}`}>
                                                     <div className="flex items-center gap-3">
                                                         <div className={`w-2 h-2 rounded-full animate-pulse ${isExpired ? 'bg-red-500' : 'bg-green-500'}`} />
@@ -484,8 +485,8 @@ export default function ShortPage() {
                                                     <input
                                                         id="url-input"
                                                         type="url"
-                                                        disabled={(version === 'v4' || version === 'v5') && isExpired}
-                                                        placeholder={version === 'v3' ? 'https://lksfy.com/QDuafv' : 'https://your-link.com'}
+                                                        disabled={(version === 'v4' || version === 'v4.1' || version === 'v5') && isExpired}
+                                                        placeholder={version === 'v3' ? 'https://lksfy.com/QDuafv' : version === 'v4.1' ? 'https://site.sharclub.in/?id=xxx' : 'https://your-link.com'}
                                                         className="w-full p-5 pl-14 rounded-2xl border border-white/10 bg-black/40 hover:bg-black/60 text-white placeholder:text-zinc-600 outline-none focus:ring-2 focus:ring-purple-500/50 transition-all disabled:opacity-50"
                                                         value={url}
                                                         onChange={(e) => setUrl(e.target.value)}
@@ -514,7 +515,7 @@ export default function ShortPage() {
 
                                             <button
                                                 type="submit"
-                                                disabled={loading || ((version === 'v4' || version === 'v5') && isExpired)}
+                                                disabled={loading || ((version === 'v4' || version === 'v4.1' || version === 'v5') && isExpired)}
                                                 className="relative w-full py-5 bg-gradient-to-r from-zinc-800 to-zinc-900 hover:from-zinc-700 hover:to-zinc-800 border border-white/10 text-white font-bold rounded-2xl transition-all shadow-xl active:scale-[0.98] disabled:opacity-50"
                                             >
                                                 <span className="flex items-center justify-center gap-3">

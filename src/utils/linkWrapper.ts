@@ -268,3 +268,121 @@ export function decodeLinkV4(slug: string): string {
     return '';
   }
 }
+
+// V4.1 Logic: Enhanced multi-layer encryption for iframe cookie preservation
+// Different cipher parameters to ensure V4 and V4.1 generate different slugs
+// Layer 1: Enhanced Caesar cipher with different shift
+// Layer 2: XOR with secret key
+// Layer 3: Reverse string
+// Layer 4: Different byte shuffling pattern
+// Layer 5: Base64 encoding
+const V41_SECRET_SHIFT = 23; // Different shift from V4
+const V41_XOR_KEY = 'iframe2026shield'; // XOR key for additional security
+const V41_SHUFFLE_PATTERN = [3, 1, 0, 2]; // Different pattern from V4
+
+export function encodeLinkV41(url: string): string {
+  try {
+    // Layer 1: Enhanced Caesar cipher with different shift
+    const shift = V41_SECRET_SHIFT + (url.length % 13);
+    let caesarEncoded = '';
+    for (let i = 0; i < url.length; i++) {
+      const charCode = url.charCodeAt(i);
+      if (charCode >= 32 && charCode <= 126) {
+        const shiftedCode = ((charCode - 32 + shift) % 95) + 32;
+        caesarEncoded += String.fromCharCode(shiftedCode);
+      } else {
+        caesarEncoded += url.charAt(i);
+      }
+    }
+
+    // Layer 2: XOR with secret key
+    let xored = '';
+    for (let i = 0; i < caesarEncoded.length; i++) {
+      xored += String.fromCharCode(
+        caesarEncoded.charCodeAt(i) ^ V41_XOR_KEY.charCodeAt(i % V41_XOR_KEY.length)
+      );
+    }
+
+    // Layer 3: Reverse the string
+    const reversed = xored.split('').reverse().join('');
+
+    // Layer 4: Byte shuffling with different pattern
+    const chunks: string[] = [];
+    for (let i = 0; i < reversed.length; i += 4) {
+      const chunk = reversed.slice(i, i + 4);
+      if (chunk.length === 4) {
+        const shuffled = V41_SHUFFLE_PATTERN.map(idx => chunk[idx] || '').join('');
+        chunks.push(shuffled);
+      } else {
+        chunks.push(chunk);
+      }
+    }
+    const shuffled = chunks.join('');
+
+    // Layer 5: Base64 encode
+    const base64 = Buffer.from(shuffled).toString('base64');
+    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  } catch (e) {
+    console.error('Error encoding link V4.1:', e);
+    return '';
+  }
+}
+
+export function decodeLinkV41(slug: string): string {
+  try {
+    // Layer 5: Decode Base64
+    let base64 = slug.replace(/-/g, '+').replace(/_/g, '/');
+    while (base64.length % 4) {
+      base64 += '=';
+    }
+    const decoded = Buffer.from(base64, 'base64').toString('utf-8');
+
+    // Layer 4: Reverse byte shuffling
+    const chunks: string[] = [];
+    for (let i = 0; i < decoded.length; i += 4) {
+      const chunk = decoded.slice(i, i + 4);
+      if (chunk.length === 4) {
+        const unshuffled = new Array(4);
+        for (let j = 0; j < 4; j++) {
+          unshuffled[V41_SHUFFLE_PATTERN[j]] = chunk[j];
+        }
+        chunks.push(unshuffled.join(''));
+      } else {
+        chunks.push(chunk);
+      }
+    }
+    const unshuffled = chunks.join('');
+
+    // Layer 3: Reverse the string back
+    const unreversed = unshuffled.split('').reverse().join('');
+
+    // Layer 2: Reverse XOR
+    let unxored = '';
+    for (let i = 0; i < unreversed.length; i++) {
+      unxored += String.fromCharCode(
+        unreversed.charCodeAt(i) ^ V41_XOR_KEY.charCodeAt(i % V41_XOR_KEY.length)
+      );
+    }
+
+    // Layer 1: Reverse Caesar cipher
+    const shift = V41_SECRET_SHIFT + (unxored.length % 13);
+    let original = '';
+    for (let i = 0; i < unxored.length; i++) {
+      const charCode = unxored.charCodeAt(i);
+      if (charCode >= 32 && charCode <= 126) {
+        let originalCode = charCode - 32 - shift;
+        while (originalCode < 0) originalCode += 95;
+        originalCode = (originalCode % 95) + 32;
+        original += String.fromCharCode(originalCode);
+      } else {
+        original += unxored.charAt(i);
+      }
+    }
+
+    return original;
+  } catch (e) {
+    console.error('Error decoding link V4.1:', e);
+    return '';
+  }
+}
+
