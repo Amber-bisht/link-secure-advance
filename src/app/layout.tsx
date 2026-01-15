@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { SessionProvider } from "next-auth/react";
+import { MonetagSW } from "@/components/MonetagSW";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -20,6 +21,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <SessionProvider>
           {children}
+          <MonetagSW />
         </SessionProvider>
       </body>
     </html>
