@@ -55,6 +55,46 @@ export default function V41RedirectPage() {
                 // Production mode: Load and execute CAPTCHA
                 setStatus('verifying');
 
+                if (CAPTCHA_CONFIG.own === 2) {
+                    // Cloudflare Turnstile
+                    if (!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) {
+                        setError('Turnstile configuration missing');
+                        setStatus('error');
+                        return;
+                    }
+
+                    // Load script if not present
+                    if (!document.getElementById('turnstile-script')) {
+                        const script = document.createElement('script');
+                        script.id = 'turnstile-script';
+                        script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+                        document.head.appendChild(script);
+                    }
+
+                    // Wait for Turnstile API and render
+                    const checkTurnstile = setInterval(() => {
+                        if ((window as any).turnstile) {
+                            clearInterval(checkTurnstile);
+                            try {
+                                (window as any).turnstile.render('#turnstile-widget', {
+                                    sitekey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
+                                    theme: 'dark',
+                                    callback: async (token: string) => {
+                                        await submitVerification(token);
+                                    },
+                                });
+                            } catch (e) {
+                                // Widget might already be rendered or other error
+                                console.error('Turnstile render error:', e);
+                            }
+                        }
+                    }, 100);
+
+                    // Timeout after 10s
+                    setTimeout(() => clearInterval(checkTurnstile), 10000);
+                    return; // Stop here, wait for callback
+                }
+
                 let captchaToken = '';
 
                 if (CAPTCHA_CONFIG.own === 1) {
@@ -120,6 +160,17 @@ export default function V41RedirectPage() {
                     captchaToken = await (window as any).grecaptcha.execute(siteKey, { action: 'redirect' });
                 }
 
+                await submitVerification(captchaToken);
+
+            } catch (err: any) {
+                console.error('Redirect error:', err);
+                setError(err.message || 'An error occurred. Please try again.');
+                setStatus('error');
+            }
+        };
+
+        const submitVerification = async (token: string) => {
+            try {
                 // Call verify API
                 const response = await fetch('/api/v4.1/verify', {
                     method: 'POST',
@@ -128,7 +179,7 @@ export default function V41RedirectPage() {
                     },
                     body: JSON.stringify({
                         slug: slug,
-                        captchaToken: captchaToken,
+                        captchaToken: token,
                     }),
                 });
 
@@ -145,11 +196,9 @@ export default function V41RedirectPage() {
                 const redirectUrl = `https://main.24jobalert.com/?id=${data.slug}`;
                 setStatus('success');
                 window.location.href = redirectUrl;
-                return;
-
             } catch (err: any) {
-                console.error('Redirect error:', err);
-                setError(err.message || 'An error occurred. Please try again.');
+                console.error('Verification submission error:', err);
+                setError(err.message || 'An error occurred during verification.');
                 setStatus('error');
             }
         };
@@ -209,13 +258,24 @@ export default function V41RedirectPage() {
 
                 {status === 'verifying' && (
                     <div className="text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-2 border-white/10 border-t-white mx-auto mb-4"></div>
-                        <h2 className="text-xl font-semibold text-white mb-2">
-                            Verifying...
-                        </h2>
-                        <p className="text-sm text-zinc-400">
-                            Checking security verification
-                        </p>
+                        {CAPTCHA_CONFIG.own === 2 ? (
+                            <div className="flex flex-col items-center">
+                                <div id="turnstile-widget" className="mb-4"></div>
+                                <p className="text-sm text-zinc-400">
+                                    Please complete the security check
+                                </p>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="animate-spin rounded-full h-12 w-12 border-2 border-white/10 border-t-white mx-auto mb-4"></div>
+                                <h2 className="text-xl font-semibold text-white mb-2">
+                                    Verifying...
+                                </h2>
+                                <p className="text-sm text-zinc-400">
+                                    Checking security verification
+                                </p>
+                            </>
+                        )}
                     </div>
                 )}
 

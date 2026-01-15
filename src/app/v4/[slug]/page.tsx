@@ -51,6 +51,44 @@ export default function V4RedirectPage() {
                 // Production mode: Load and execute CAPTCHA
                 setStatus('verifying');
 
+                if (CAPTCHA_CONFIG.own === 2) {
+                    // Cloudflare Turnstile
+                    if (!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) {
+                        setError('Turnstile configuration missing');
+                        setStatus('error');
+                        return;
+                    }
+
+                    // Load script
+                    if (!document.getElementById('turnstile-script')) {
+                        const script = document.createElement('script');
+                        script.id = 'turnstile-script';
+                        script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+                        document.head.appendChild(script);
+                    }
+
+                    // Wait for Turnstile API
+                    const checkTurnstile = setInterval(() => {
+                        if ((window as any).turnstile) {
+                            clearInterval(checkTurnstile);
+                            try {
+                                (window as any).turnstile.render('#turnstile-widget', {
+                                    sitekey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
+                                    theme: 'dark',
+                                    callback: async (token: string) => {
+                                        await submitVerification(token);
+                                    },
+                                });
+                            } catch (e) {
+                                console.error('Turnstile render error:', e);
+                            }
+                        }
+                    }, 100);
+
+                    setTimeout(() => clearInterval(checkTurnstile), 10000);
+                    return;
+                }
+
                 let token = '';
 
                 if (CAPTCHA_CONFIG.own === 1) {
@@ -73,19 +111,14 @@ export default function V4RedirectPage() {
                         });
                     }
 
-                    // Add a small delay to allow for behavioral tracking (prevent "too fast" penalty)
                     await new Promise(resolve => setTimeout(resolve, 1500));
-
-                    // Execute Custom CAPTCHA
                     token = (window as any).CustomCaptchaV3.execute(slug, 'redirect');
                 } else {
-                    // Production mode: Load and execute reCAPTCHA
-                    // Load reCAPTCHA script if not already loaded
+                    // Load reCAPTCHA script
                     if (!(window as any).grecaptcha) {
                         const script = document.createElement('script');
                         script.src = `https://www.google.com/recaptcha/api.js?render=${siteKey}`;
 
-                        // Handle script loading errors
                         script.onerror = () => {
                             console.error('Failed to load reCAPTCHA script');
                             setError('Failed to load security verification. Please check your connection.');
@@ -94,13 +127,11 @@ export default function V4RedirectPage() {
 
                         document.head.appendChild(script);
 
-                        // Wait for script to load
                         await new Promise((resolve, reject) => {
                             script.onload = resolve;
                             script.onerror = reject;
                         });
 
-                        // Wait for grecaptcha to be ready
                         await new Promise<void>(resolve => {
                             const checkReady = setInterval(() => {
                                 if ((window as any).grecaptcha?.ready) {
@@ -109,7 +140,6 @@ export default function V4RedirectPage() {
                                 }
                             }, 100);
 
-                            // Timeout after 10 seconds
                             setTimeout(() => {
                                 clearInterval(checkReady);
                                 resolve();
@@ -117,11 +147,21 @@ export default function V4RedirectPage() {
                         });
                     }
 
-                    // Execute reCAPTCHA
                     token = await (window as any).grecaptcha.execute(siteKey, { action: 'redirect' });
                 }
 
-                // Call API to verify CAPTCHA and get redirect URL
+                await submitVerification(token);
+
+            } catch (err: any) {
+                console.error('Redirect error:', err);
+                setError(err.message || 'An error occurred. Please try again.');
+                setStatus('error');
+            }
+        };
+
+        const submitVerification = async (captchaToken: string) => {
+            // Call API to verify CAPTCHA and get redirect URL
+            try {
                 const response = await fetch('/api/v4/redirect', {
                     method: 'POST',
                     headers: {
@@ -129,7 +169,7 @@ export default function V4RedirectPage() {
                     },
                     body: JSON.stringify({
                         slug: slug,
-                        captchaToken: token,
+                        captchaToken: captchaToken,
                     }),
                 });
 
@@ -144,10 +184,9 @@ export default function V4RedirectPage() {
                 // Redirect to the decoded URL
                 setStatus('redirecting');
                 window.location.href = data.url;
-
             } catch (err: any) {
-                console.error('Redirect error:', err);
-                setError(err.message || 'An error occurred. Please try again.');
+                console.error('Submit error:', err);
+                setError(err.message || 'Verification failed');
                 setStatus('error');
             }
         };
@@ -185,13 +224,24 @@ export default function V4RedirectPage() {
 
                 {status === 'verifying' && (
                     <div className="text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-2 border-white/10 border-t-white mx-auto mb-4"></div>
-                        <h2 className="text-xl font-semibold text-white mb-2">
-                            Verifying...
-                        </h2>
-                        <p className="text-sm text-zinc-400">
-                            Checking security verification
-                        </p>
+                        {CAPTCHA_CONFIG.own === 2 ? (
+                            <div className="flex flex-col items-center">
+                                <div id="turnstile-widget" className="mb-4"></div>
+                                <p className="text-sm text-zinc-400">
+                                    Please complete the security check
+                                </p>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="animate-spin rounded-full h-12 w-12 border-2 border-white/10 border-t-white mx-auto mb-4"></div>
+                                <h2 className="text-xl font-semibold text-white mb-2">
+                                    Verifying...
+                                </h2>
+                                <p className="text-sm text-zinc-400">
+                                    Checking security verification
+                                </p>
+                            </>
+                        )}
                     </div>
                 )}
 

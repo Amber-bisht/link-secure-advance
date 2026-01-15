@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import crypto from 'crypto';
 import { decodeLinkV41 } from '@/utils/linkWrapper';
 import { verifyCaptcha, verifyCustomCaptcha } from '@/utils/captcha';
+import { verifyTurnstile } from '@/utils/turnstile';
 import { CAPTCHA_CONFIG } from '@/config/captcha';
 import dbConnect from '@/lib/db';
 import Session from '@/models/Session';
@@ -21,9 +22,15 @@ export async function POST(request: NextRequest) {
         }
 
         // Verify CAPTCHA
-        const isCaptchaValid = CAPTCHA_CONFIG.own === 1
-            ? await verifyCustomCaptcha(captchaToken)
-            : await verifyCaptcha(captchaToken);
+        let isCaptchaValid = false;
+
+        if (CAPTCHA_CONFIG.own === 1) {
+            isCaptchaValid = await verifyCustomCaptcha(captchaToken);
+        } else if (CAPTCHA_CONFIG.own === 2) {
+            isCaptchaValid = await verifyTurnstile(captchaToken);
+        } else {
+            isCaptchaValid = await verifyCaptcha(captchaToken);
+        }
 
         if (!isCaptchaValid) {
             return NextResponse.json(
