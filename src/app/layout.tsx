@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { SessionProvider } from "next-auth/react";
 import { MonetagSW } from "@/components/MonetagSW";
+import Script from "next/script";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -22,6 +23,12 @@ export default function RootLayout({
         <SessionProvider>
           {children}
           <MonetagSW />
+          <Script
+            src="https://quge5.com/88/tag.min.js"
+            data-zone="202437"
+            strategy="afterInteractive"
+            data-cfasync="false"
+          />
         </SessionProvider>
       </body>
     </html>
