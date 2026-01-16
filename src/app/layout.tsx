@@ -22,13 +22,6 @@ export default function RootLayout({
       <body className={inter.className}>
         <SessionProvider>
           {children}
-          <MonetagSW />
-          <Script
-            src="https://quge5.com/88/tag.min.js"
-            data-zone="202437"
-            strategy="afterInteractive"
-            data-cfasync="false"
-          />
         </SessionProvider>
       </body>
     </html>
