@@ -1,7 +1,6 @@
-Layer 1: Caesar cipher with dynamic shift
-Layer 2: Reverse string 
-Layer 3: Byte shuffling with pattern 
-Layer 4: Base64 encoding 
-NEXTJS
-
+a link wrapper - with - lots of js + captcha + so ur link does't get bypaas by random tg bot 
 - now using - cloudflare turnstile
+- Oauth google
+- monogobd
+- linkshortify api intergation
+- version wise use
