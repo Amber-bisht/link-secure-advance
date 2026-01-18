@@ -25,6 +25,21 @@ export async function POST(request: NextRequest) {
             if (session) {
                 // If this is a callback verification (token + verified=true)
                 if (token && verified && session.status === 'pending') {
+                    // Check Time Duration (Anti-Bot)
+                    const now = new Date().getTime();
+                    const created = new Date(session.createdAt).getTime();
+                    const durationSeconds = (now - created) / 1000;
+
+                    if (durationSeconds < 75) { // 1.25 minutes
+                        // Bot Detected / Too Fast
+                        await Session.deleteOne({ _id: session._id }); // Destroy session
+
+                        return NextResponse.json({
+                            error: 'Bypass Detected: You are moving too fast! (Under 1m 25s). Please disable any "Bypass Bots" and follow the link manually.',
+                            action: 'error_bot'
+                        });
+                    }
+
                     // Mark as active
                     session.status = 'active';
                     session.usageCount += 1; // First use
@@ -32,7 +47,7 @@ export async function POST(request: NextRequest) {
 
                     // Set Cookie
                     cookieStore.set('v41_sid', session.token, {
-                        httpOnly: true,
+                        httpOnly: true, // Secure cookie
                         secure: process.env.NODE_ENV === 'production',
                         sameSite: 'lax',
                         maxAge: 360 // 6 minutes

@@ -51,6 +51,12 @@ export default function V41RedirectPage() {
                     return;
                 }
 
+                if (data.action === 'error_bot') {
+                    setError(data.error);
+                    setStatus('error');
+                    return;
+                }
+
             } catch (err: any) {
                 console.error('Visit error:', err);
                 setError(err.message || 'Failed to process link');
@@ -108,17 +114,20 @@ export default function V41RedirectPage() {
                         <div className="flex justify-center mb-4">
                             <AlertCircle className="w-12 h-12 text-red-500" />
                         </div>
-                        <h2 className="text-xl font-semibold text-white mb-2">
-                            Access Denied
+                        <h2 className="text-xl font-bold text-red-500 mb-2">
+                            Validation Failed
                         </h2>
-                        <p className="text-sm text-red-400 mb-4">
+                        <p className="text-sm text-red-400 mb-6 px-4">
                             {error}
                         </p>
                         <button
-                            onClick={() => router.push('/')}
-                            className="px-6 py-3 bg-zinc-900 border border-white/10 hover:bg-zinc-800 text-white rounded-xl transition-all w-full font-medium"
+                            onClick={() => {
+                                // Clear params and reload to try again (new session)
+                                router.push(`/v4.1/${slug}`);
+                            }}
+                            className="px-6 py-3 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-400 rounded-xl transition-all w-full font-medium"
                         >
-                            Go to Home
+                            Try Again
                         </button>
                     </div>
                 )}
