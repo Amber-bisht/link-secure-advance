@@ -296,6 +296,17 @@ export default function ShortPage() {
                 </div>
             </nav>
 
+            <a
+                href="https://t.me/asprin_devs"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full bg-gradient-to-r from-purple-900/50 to-blue-900/50 border-y border-white/5 py-3 px-4 text-center cursor-pointer hover:bg-white/5 transition-all"
+            >
+                <p className="text-sm font-medium text-zinc-300">
+                    📢 <span className="text-white font-bold hover:underline">Join our announcement channel</span> for more info
+                </p>
+            </a>
+
             <div className="z-10 w-full max-w-7xl px-6 py-12 md:py-20">
                 <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-start">
                     {/* Left Column: Title and Switcher */}
