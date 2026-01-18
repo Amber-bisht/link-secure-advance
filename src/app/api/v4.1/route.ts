@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { encodeLinkV41 } from '@/utils/linkWrapper';
 import { verifyCaptcha, isRailwayDomain } from '@/utils/captcha';
 import { auth } from '@/auth';
 import dbConnect from '@/lib/db';
@@ -88,54 +87,33 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Generate Session Token
-        const token = crypto.randomBytes(12).toString('hex'); // 24 chars
+        // Generate V4.1 Persistent Link
+        // We use a custom slug or random one, but persist it in Link collection
+        // This is the "Public URL" the owner shares
 
-        // Create Session (6 min validity, 3 uses)
-        // We use the same Session model but we'll lookup by token
-        const Session = (await import('@/models/Session')).default;
-        await Session.create({
-            token: token,
+        const Link = (await import('@/models/Link')).default;
+
+        // Check if user already has a link for this target? (Optional, skipping for now to allow multiple)
+
+        // Generate a random slug for the persistent link
+        const slug = crypto.randomBytes(4).toString('hex'); // 8 chars
+
+        await Link.create({
+            slug: slug,
             targetUrl: targetUrl,
-            ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0] || '127.0.0.1',
-            userId: user._id,
-            maxUses: 3,
-            usageCount: 0,
-            // expires is handled by schema default (360s)
+            ownerId: user._id,
         });
 
-        // Construct Intermediate URL
+        // Return the persistent link
         const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'https://links.asprin.dev';
-        const intermediateUrl = `${origin}/v4.1/${token}`;
+        const generatedLink = `${origin}/v4.1/${slug}`;
 
-        // Call LinkShortify API
-        // https://linkshortify.com/api?api={key}&url={url}&format=text
-        const linkShortifyUrl = `https://linkshortify.com/api?api=${user.linkShortifyKey}&url=${encodeURIComponent(intermediateUrl)}&format=text`;
-
-        try {
-            const lsResponse = await fetch(linkShortifyUrl);
-            const shortLink = await lsResponse.text();
-
-            if (!lsResponse.ok || !shortLink.startsWith('http')) {
-                // LinkShortify error (often returns JSON on error even if format=text requested, or just error text)
-                console.error('LinkShortify Error:', shortLink);
-                throw new Error('Failed to shorten with LinkShortify. Check your API Key.');
-            }
-
-            return NextResponse.json({
-                success: true,
-                link: shortLink.trim(),
-                slug: token, // This is the session token, not the final slug
-                version: '4.1'
-            });
-
-        } catch (lsError: any) {
-            console.error('LinkShortify Request Failed:', lsError);
-            return NextResponse.json(
-                { error: 'LinkShortify API Error: ' + lsError.message },
-                { status: 502 }
-            );
-        }
+        return NextResponse.json({
+            success: true,
+            link: generatedLink,
+            slug: slug,
+            version: '4.1'
+        });
 
     } catch (error) {
         console.error('V4.1 API error:', error);
