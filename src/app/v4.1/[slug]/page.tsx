@@ -115,7 +115,7 @@ export default function V41RedirectPage() {
                             <AlertCircle className="w-12 h-12 text-red-500" />
                         </div>
                         <h2 className="text-xl font-bold text-red-500 mb-2">
-                            Validation Failed
+                            Access Denied
                         </h2>
                         <p className="text-sm text-red-400 mb-6 px-4">
                             {error}
@@ -134,7 +134,7 @@ export default function V41RedirectPage() {
 
                 <div className="mt-6 text-center">
                     <p className="text-xs text-zinc-600">
-                        Protected by LinkShortify Integration
+                        Secure Link v4.1
                     </p>
                 </div>
             </div>

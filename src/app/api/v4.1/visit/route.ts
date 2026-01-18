@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
                         await Session.deleteOne({ _id: session._id }); // Destroy session
 
                         return NextResponse.json({
-                            error: 'Bypass Detected: You are moving too fast! (Under 1m 25s). Please disable any "Bypass Bots" and follow the link manually.',
+                            error: 'You have bypassed through bot or extension. Please re-open it to try again.',
                             action: 'error_bot'
                         });
                     }
