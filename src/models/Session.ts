@@ -6,6 +6,7 @@ export interface ISession extends Document {
     ipAddress: string;
     status: 'pending' | 'active';
     linkId?: mongoose.Types.ObjectId;
+    shortLink?: string;
     createdAt: Date;
     used: boolean;
     usageCount: number;
@@ -19,6 +20,7 @@ const SessionSchema: Schema = new Schema({
     ipAddress: { type: String, required: true },
     status: { type: String, enum: ['pending', 'active'], default: 'pending' },
     linkId: { type: Schema.Types.ObjectId, ref: 'Link' }, // Reference to parent persistent link
+    shortLink: { type: String }, // Store the generated short link for reuse
     used: { type: Boolean, default: false },
     usageCount: { type: Number, default: 0 },
     maxUses: { type: Number, default: 3 },

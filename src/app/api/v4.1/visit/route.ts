@@ -46,22 +46,25 @@ export async function POST(request: NextRequest) {
 
                 // Normal Visit with Cookie/Token
                 if (session.status === 'active') {
-                    // Check Limits
-                    if (session.usageCount >= session.maxUses) {
-                        return NextResponse.json(
-                            { error: 'Link Limit Reached (3/3 Uses)' },
-                            { status: 410 }
-                        );
+                    // Check Limits & Expiry
+                    const isLimitReached = session.usageCount >= session.maxUses;
+                    const isExpired = (new Date().getTime() - new Date(session.createdAt).getTime()) > 360000; // 6 mins
+
+                    if (!isLimitReached && !isExpired) {
+                        // Valid Session - Increment & Redirect
+                        session.usageCount += 1;
+                        await session.save();
+
+                        return NextResponse.json({
+                            action: 'redirect',
+                            url: session.targetUrl
+                        });
                     }
 
-                    // Increment
-                    session.usageCount += 1;
-                    await session.save();
-
-                    return NextResponse.json({
-                        action: 'redirect',
-                        url: session.targetUrl
-                    });
+                    // IF INVALID (Expired or Limit Reached):
+                    // Do NOT return error.
+                    // Fall through to "New Session Creation" below.
+                    // This allows the user to start a new flow (re-shorten).
                 }
             }
         }
@@ -76,6 +79,23 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // Optimization: Check if there is already a PENDING session for this IP and Link
+        // This prevents creating multiple sessions if the user refreshes the "Connecting..." page
+        const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || '127.0.0.1';
+
+        const existingPending = await Session.findOne({
+            linkId: link._id,
+            ipAddress: ip,
+            status: 'pending'
+        });
+
+        if (existingPending && existingPending.shortLink) {
+            return NextResponse.json({
+                action: 'shorten',
+                url: existingPending.shortLink
+            });
+        }
+
         // Find Owner for API Key
         const owner = await User.findById(link.ownerId);
         if (!owner || !owner.linkShortifyKey) {
@@ -87,41 +107,47 @@ export async function POST(request: NextRequest) {
 
         // Create Pending Session
         const newSessionToken = crypto.randomBytes(12).toString('hex');
-        await Session.create({
-            token: newSessionToken,
-            targetUrl: link.targetUrl, // Use parent's target
-            ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0] || '127.0.0.1',
-            linkId: link._id,
-            status: 'pending',
-            maxUses: 3,
-            usageCount: 0,
-        });
 
         // Generate Callback/Intermediate URL
-        // format: domain/v4.1/slug?session=token&verified=true
-        // We actually want the user to visit LinkShortify, then LS redirects back to...
-        // LS redirects to the URL we send it.
-        // So we send it: origin/v4.1/slug?token=xyz&verified=true
         const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'https://links.asprin.dev';
         const callbackUrl = `${origin}/v4.1/${slug}?token=${newSessionToken}&verified=true`;
 
         // Shorten with LinkShortify
         const linkShortifyUrl = `https://linkshortify.com/api?api=${owner.linkShortifyKey}&url=${encodeURIComponent(callbackUrl)}&format=text`;
 
-        const lsResponse = await fetch(linkShortifyUrl);
-        const shortLink = await lsResponse.text();
+        let shortLink = '';
+        try {
+            const lsResponse = await fetch(linkShortifyUrl);
+            shortLink = await lsResponse.text();
+            shortLink = shortLink.trim();
 
-        if (!lsResponse.ok || !shortLink.startsWith('http')) {
-            console.error('LinkShortify Error:', shortLink);
+            if (!lsResponse.ok || !shortLink.startsWith('http')) {
+                console.error('LinkShortify Error:', shortLink);
+                throw new Error('LinkShortify API returned invalid response');
+            }
+        } catch (lsError) {
+            console.error('LinkShortify Generation Failed:', lsError);
             return NextResponse.json(
                 { error: 'LinkShortify Generation Failed' },
                 { status: 502 }
             );
         }
 
+        // Save Session WITH successful shortLink
+        await Session.create({
+            token: newSessionToken,
+            targetUrl: link.targetUrl, // Use parent's target
+            ipAddress: ip,
+            linkId: link._id,
+            status: 'pending',
+            shortLink: shortLink,
+            maxUses: 3,
+            usageCount: 0,
+        });
+
         return NextResponse.json({
             action: 'shorten',
-            url: shortLink.trim()
+            url: shortLink
         });
 
     } catch (error) {

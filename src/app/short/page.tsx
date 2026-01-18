@@ -153,6 +153,24 @@ export default function ShortPage() {
                     await new Promise(resolve => script.onload = resolve);
                 }
 
+                // Wait for grecaptcha to be fully ready
+                await new Promise<void>((resolve) => {
+                    const check = setInterval(() => {
+                        if ((window as any).grecaptcha && (window as any).grecaptcha.ready) {
+                            clearInterval(check);
+                            (window as any).grecaptcha.ready(() => resolve());
+                        }
+                    }, 100);
+                    // Safe timeout
+                    setTimeout(() => { clearInterval(check); resolve(); }, 5000);
+                });
+
+                // Double check if execute is available
+                if (!(window as any).grecaptcha?.execute) {
+                    // Fallback/Retry logic or throw clearer error
+                    throw new Error("Security verification failed to load. Please try again.");
+                }
+
                 // Execute reCAPTCHA
                 const token = await (window as any).grecaptcha.execute(
                     process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY,
