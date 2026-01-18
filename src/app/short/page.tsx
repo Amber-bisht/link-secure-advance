@@ -19,8 +19,8 @@ export default function ShortPage() {
     const { data: session, status } = useSession();
     const [url, setUrl] = useState("");
     const [customSlug, setCustomSlug] = useState(""); // For V5
-    const [version, setVersion] = useState<Version>("base");
-    const [category, setCategory] = useState<Category>("standard");
+    const [version, setVersion] = useState<Version>("v4");
+    // const [category, setCategory] = useState<Category>("advanced"); // Default to advanced/v4
     const [generatedLink, setGeneratedLink] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -48,16 +48,15 @@ export default function ShortPage() {
             // @ts-ignore
             setApiKeyInput(session.user.linkShortifyKey || '');
         }
-    }, [session, category, version]);
+    }, [session, version]);
 
-    // Update version when category changes to ensure valid selection
+    // Category switching logic removed as only Advanced is supported now
     useEffect(() => {
-        if (category === 'standard' && (version === 'v4' || version === 'v4.1' || version === 'v5')) {
-            setVersion('base');
-        } else if (category === 'advanced' && (version !== 'v4' && version !== 'v4.1' && version !== 'v5')) {
+        // Enforce v4+ versions
+        if (version !== 'v4' && version !== 'v4.1' && version !== 'v5') {
             setVersion('v4');
         }
-    }, [category]);
+    }, [version]);
 
     const handleSaveKey = async () => {
         if (!apiKeyInput.trim()) return;
@@ -316,31 +315,12 @@ export default function ShortPage() {
                             </p>
                         </div>
 
-                        {/* Section Switcher */}
-                        <div className="flex p-1.5 bg-zinc-900/50 backdrop-blur-md rounded-2xl border border-white/5 max-w-sm">
-                            <button
-                                onClick={() => setCategory('standard')}
-                                className={`flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all ${category === 'standard' ? 'bg-zinc-800 text-white shadow-lg border border-white/10' : 'text-zinc-500 hover:text-zinc-300'}`}
-                            >
-                                Standard Tools
-                            </button>
-                            <button
-                                onClick={() => setCategory('advanced')}
-                                className={`flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all ${category === 'advanced' ? 'bg-zinc-800 text-white shadow-lg border border-white/10' : 'text-zinc-500 hover:text-zinc-300'}`}
-                            >
-                                Advanced Guard
-                            </button>
-                        </div>
-
-                        {/* Sub-text for category */}
                         <div className="hidden lg:block space-y-2">
                             <p className="text-xs font-bold text-zinc-600 uppercase tracking-[0.2em]">
-                                {category === 'standard' ? 'Fast & Reliable Encoding' : 'Military Grade Protection'}
+                                Military Grade Protection
                             </p>
                             <p className="text-sm text-zinc-500 max-w-xs">
-                                {category === 'standard'
-                                    ? 'Perfect for everyday link sharing with basic obfuscation.'
-                                    : 'Secured with reCAPTCHA v3 and premium account verification.'}
+                                Secured with reCAPTCHA v3 and premium account verification.
                             </p>
                         </div>
                     </motion.div>
@@ -411,7 +391,7 @@ export default function ShortPage() {
                                 </AnimatePresence>
 
                                 <div className="p-8 md:p-10">
-                                    {category === 'advanced' && !session ? (
+                                    {!session ? (
                                         /* Auth Gate for Advanced Section */
                                         <div className="h-full flex flex-col items-center justify-center text-center space-y-8 py-10">
                                             <div className="w-16 h-16 rounded-2xl bg-zinc-800/50 flex items-center justify-center border border-white/10">
@@ -440,44 +420,43 @@ export default function ShortPage() {
                                                     Security Protocol
                                                 </label>
                                                 <div className="grid grid-cols-2 gap-3">
-                                                    {category === 'standard' ? (
-                                                        <>
-                                                            {[
-                                                                { id: 'base', label: 'Basic', sub: 'XOR Encoding' },
-                                                                { id: 'v1', label: 'v1 Enhanced', sub: 'Base64 Mix' },
-                                                                { id: 'v2', label: 'v2 Advanced', sub: 'Custom Cipher' },
-                                                                { id: 'v3', label: 'v3 Linkify', sub: 'Optimized' }
-                                                            ].map((opt) => (
-                                                                <button
-                                                                    key={opt.id}
-                                                                    type="button"
-                                                                    onClick={() => setVersion(opt.id as Version)}
-                                                                    className={`p-4 rounded-2xl text-left border transition-all ${version === opt.id ? 'bg-purple-600/10 border-purple-500/50 text-white' : 'bg-white/5 border-white/5 text-zinc-400 hover:bg-white/10'}`}
-                                                                >
-                                                                    <div className="font-bold text-sm">{opt.label}</div>
-                                                                    <div className="text-[10px] opacity-60 uppercase tracking-widest mt-1">{opt.sub}</div>
-                                                                </button>
-                                                            ))}
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            {[
-                                                                { id: 'v4', label: 'v4 Captcha', sub: 'Human Verification' },
-                                                                { id: 'v4.1', label: 'v4.1 LinkShortify', sub: 'Session Protected' }
-                                                            ].map((opt) => (
-                                                                <button
-                                                                    key={opt.id}
-                                                                    type="button"
-                                                                    onClick={() => setVersion(opt.id as Version)}
-                                                                    className={`p-4 rounded-2xl text-left border transition-all ${version === opt.id ? 'bg-blue-600/10 border-blue-500/50 text-white' : 'bg-white/5 border-white/5 text-zinc-400 hover:bg-white/10'}`}
-                                                                >
-                                                                    <div className="font-bold text-sm">{opt.label}</div>
-                                                                    <div className="text-[10px] opacity-60 uppercase tracking-widest mt-1">{opt.sub}</div>
-                                                                </button>
-                                                            ))}
-                                                        </>
-                                                    )}
+                                                    {[
+                                                        { id: 'v4', label: 'v4 Captcha', sub: 'Human Verification' },
+                                                        { id: 'v4.1', label: 'v4.1 LinkShortify', sub: 'Session Protected' }
+                                                    ].map((opt) => (
+                                                        <button
+                                                            key={opt.id}
+                                                            type="button"
+                                                            onClick={() => setVersion(opt.id as Version)}
+                                                            className={`p-4 rounded-2xl text-left border transition-all ${version === opt.id ? 'bg-blue-600/10 border-blue-500/50 text-white' : 'bg-white/5 border-white/5 text-zinc-400 hover:bg-white/10'}`}
+                                                        >
+                                                            <div className="font-bold text-sm">{opt.label}</div>
+                                                            <div className="text-[10px] opacity-60 uppercase tracking-widest mt-1">{opt.sub}</div>
+                                                        </button>
+                                                    ))}
                                                 </div>
+                                                {version === 'v4.1' && (
+                                                    <div className="mt-4 p-4 bg-blue-900/10 border border-blue-500/10 rounded-2xl flex items-center gap-4">
+                                                        <img
+                                                            src="https://pub-20da4aefbab14400b5ebb8424eaebaae.r2.dev/Website/logo.webp"
+                                                            alt="LinkShortify Logo"
+                                                            className="w-12 h-12 object-contain"
+                                                        />
+                                                        <div className="flex-1 space-y-1">
+                                                            <p className="text-sm text-zinc-200 font-medium">
+                                                                Works with <span className="text-blue-400">LinkShortify</span> keys only.
+                                                            </p>
+                                                            <a
+                                                                href="https://linkshortify.com/ref/114386840386130679805"
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="text-xs text-blue-400 hover:text-blue-300 underline underline-offset-2 flex items-center gap-1"
+                                                            >
+                                                                Get your keys here
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
 
                                             {/* V4/V4.1/V5 Status Messages */}
