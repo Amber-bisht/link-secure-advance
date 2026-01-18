@@ -1,7 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import crypto from 'crypto';
-import { decodeLinkV41 } from '@/utils/linkWrapper';
 import { verifyCaptcha, verifyCustomCaptcha } from '@/utils/captcha';
 import { verifyTurnstile } from '@/utils/turnstile';
 import { CAPTCHA_CONFIG } from '@/config/captcha';
@@ -39,47 +36,51 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Decode the V4.1 link to get target URL (uses V4.1-specific cipher)
-        const decodedUrl = decodeLinkV41(slug);
+        // Look up Session
+        await dbConnect();
+        // slug here is the token
+        const session = await Session.findOne({ token: slug });
 
-        if (!decodedUrl) {
+        if (!session) {
             return NextResponse.json(
-                { error: 'Invalid or expired link' },
-                { status: 400 }
+                { error: 'Link Expired or Invalid' },
+                { status: 404 }
             );
         }
 
-        // Generate session token for browser locking
-        await dbConnect();
-        const token = crypto.randomBytes(16).toString('hex');
+        // Check Usage Limits
+        if (session.usageCount >= session.maxUses) {
+            return NextResponse.json(
+                { error: 'Link Limit Reached (Max 3 uses)' },
+                { status: 410 } // Gone
+            );
+        }
 
-        // Capture IP for pinning
-        const forwarded = request.headers.get('x-forwarded-for');
-        const ipAddress = forwarded ? forwarded.split(',')[0] : '127.0.0.1';
+        // Check if expired (double check manual time)
+        // 6 minutes = 360000 ms
+        const isExpired = (new Date().getTime() - new Date(session.createdAt).getTime()) > 360000;
+        if (isExpired) {
+            return NextResponse.json(
+                { error: 'Link Time Expired (6 mins)' },
+                { status: 410 }
+            );
+        }
 
-        // Create session
-        await Session.create({
-            token,
-            targetUrl: decodedUrl,
-            ipAddress,
-            used: false
-        });
+        // Increment Usage
+        session.usageCount += 1;
+        await session.save();
 
-        // Set browser locking cookie
-        const cookieStore = await cookies();
-        cookieStore.set('v41_sid', token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 600 // 10 minutes
-        });
+        // Browser Pinning Logic (Optional enhancement: check if same IP?)
+        // The original requirement mentioned "session is of 6min total - session can be used 3 times only"
+        // It didn't strictly say "per user", but usually "session" implies a specific flow.
+        // We track usage on the session object which is unique per generated link.
 
-        // Return target URL and token for client
+        // Return target URL
         return NextResponse.json({
             success: true,
-            targetUrl: decodedUrl,
+            targetUrl: session.targetUrl,
             slug: slug,
-            token: token
+            token: slug // reusing token as id
         });
 
     } catch (error) {

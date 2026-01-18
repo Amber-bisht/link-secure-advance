@@ -168,6 +168,12 @@ export default function ShortPage() {
                 });
 
                 const data = await response.json();
+
+                if (version === 'v4.1' && data.code === 'KEY_MISSING') {
+                    setShowSettings(true);
+                    throw new Error("Please configure your LinkShortify API Key in Settings to use V4.1.");
+                }
+
                 if (!response.ok) throw new Error(data.error || 'Failed to generate link');
 
                 setGeneratedLink(data.link);
@@ -439,7 +445,7 @@ export default function ShortPage() {
                                                         <>
                                                             {[
                                                                 { id: 'v4', label: 'v4 Captcha', sub: 'Human Verification' },
-                                                                { id: 'v4.1', label: 'v4.1 Cookie Shield', sub: 'Iframe Protection' }
+                                                                { id: 'v4.1', label: 'v4.1 LinkShortify', sub: 'Session Protected' }
                                                             ].map((opt) => (
                                                                 <button
                                                                     key={opt.id}
@@ -486,7 +492,7 @@ export default function ShortPage() {
                                                         id="url-input"
                                                         type="url"
                                                         disabled={(version === 'v4' || version === 'v4.1' || version === 'v5') && isExpired}
-                                                        placeholder={version === 'v3' ? 'https://lksfy.com/QDuafv' : version === 'v4.1' ? 'https://site.sharclub.in/?id=xxx' : 'https://your-link.com'}
+                                                        placeholder={version === 'v3' ? 'https://lksfy.com/QDuafv' : version === 'v4.1' ? 'https://t.me/your_channel' : 'https://your-link.com'}
                                                         className="w-full p-5 pl-14 rounded-2xl border border-white/10 bg-black/40 hover:bg-black/60 text-white placeholder:text-zinc-600 outline-none focus:ring-2 focus:ring-purple-500/50 transition-all disabled:opacity-50"
                                                         value={url}
                                                         onChange={(e) => setUrl(e.target.value)}
