@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { ShieldCheck, AlertCircle, CheckCircle2 } from "lucide-react";
+import { ShieldCheck, AlertCircle, CheckCircle2, Loader2, ArrowRight } from "lucide-react";
 import Script from "next/script";
 
 export default function V41RedirectPage() {
@@ -13,6 +13,9 @@ export default function V41RedirectPage() {
     const token = searchParams.get('token');
     const verified = searchParams.get('verified');
 
+    // Status & Timeline State
+    // Steps: 1=Checking, 2=Security, 3=Session, 4=Redirect
+    const [step, setStep] = useState(1);
     const [status, setStatus] = useState<'loading' | 'processing' | 'success' | 'error'>('loading');
     const [error, setError] = useState('');
 
@@ -94,7 +97,7 @@ export default function V41RedirectPage() {
 
     const initVisit = async (turnstileToken: string) => {
         try {
-            setStatus('loading');
+            setStep(3); // Establishing Session
             const { visitNumber } = getVisitStatus();
 
             const res = await fetch('/api/v4.1/visit', {
@@ -117,15 +120,23 @@ export default function V41RedirectPage() {
 
             if (data.action === 'shorten') {
                 updateVisitStatus('shorten');
+                setStep(4); // Redirecting
+                setStatus('success');
                 // Redirect to LinkShortify/Others
-                window.location.href = data.url;
+                setTimeout(() => {
+                    window.location.href = data.url;
+                }, 800);
                 return;
             }
 
             if (data.action === 'redirect') {
                 // Success - Final Destination
+                updateVisitStatus('redirect'); // Update last visit time? Maybe not needed for final dest
+                setStep(4); // Redirecting
                 setStatus('success');
-                window.location.href = data.url;
+                setTimeout(() => {
+                    window.location.href = data.url;
+                }, 800);
                 return;
             }
 
@@ -144,6 +155,7 @@ export default function V41RedirectPage() {
 
     // Render Turnstile when script loads
     const handleScriptLoad = () => {
+        setStep(2); // Script loaded, waiting for widget/token
         if ((window as any).turnstile) {
             (window as any).turnstile.render(turnstileContainerRef.current, {
                 sitekey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY, // Access from .env
@@ -154,92 +166,107 @@ export default function V41RedirectPage() {
                     setError('Security verification failed');
                     setStatus('error');
                 },
-                appearance: 'interaction-only', // Invisible logic (interaction-only usually means no captcha unless needed, or just use 'always' for testing? Default is usually fine)
-                // actually for invisible we might want 'always' or just let it decide. 
-                // 'interaction-only' is a mode? No, appearance options are 'always', 'execute', 'interaction-only'. 
-                // Let's stick to default (undefined) or 'always' for now. 
-                // Actually 'interaction-only' is not a valid appearance. 'always' or 'execute' (for invisible).
-                // Let's use no appearance prop to let it auto-detect or use 'execute' if we triggered it. 
-                // But we want it to auto-render. 
+                appearance: 'interaction-only',
             });
         }
     };
 
+    const timeline = [
+        { step: 1, label: "Checking Link Status" },
+        { step: 2, label: "Verifying Security Scope" },
+        { step: 3, label: "Establishing Secure Session" },
+        { step: 4, label: "Redirecting to Destination" },
+    ];
+
     return (
-        <div className="flex min-h-screen items-center justify-center bg-black">
+        <div className="flex min-h-screen items-center justify-center bg-black font-sans selection:bg-purple-500/30">
             <Script
                 src="https://challenges.cloudflare.com/turnstile/v0/api.js"
                 onLoad={handleScriptLoad}
                 strategy="afterInteractive"
             />
 
-            <div className="max-w-md w-full p-8 bg-zinc-900 rounded-xl shadow-2xl border border-zinc-800">
+            <div className="max-w-md w-full p-8 bg-zinc-900/50 backdrop-blur-xl rounded-2xl shadow-2xl border border-zinc-800/50 relative overflow-hidden">
+
+                {/* Background Ambient Glow */}
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-40 bg-purple-500/10 rounded-full blur-[80px] pointer-events-none" />
+
                 {/* Header */}
-                <div className="text-center mb-6">
-                    <div className="flex justify-center mb-4">
-                        <div className="p-3 rounded-full bg-zinc-800/50 border border-white/5">
-                            <ShieldCheck className="w-8 h-8 text-white" />
+                <div className="text-center mb-10 relative z-10">
+                    <div className="flex justify-center mb-6">
+                        <div className="p-4 rounded-2xl bg-zinc-900 border border-zinc-800 shadow-xl relative group">
+                            <div className="absolute inset-0 bg-purple-500/10 rounded-2xl blur-lg group-hover:bg-purple-500/20 transition-all opacity-0 group-hover:opacity-100" />
+                            <ShieldCheck className="w-10 h-10 text-white relative z-10" />
                         </div>
                     </div>
-                    <h1 className="text-2xl font-bold text-white mb-1">links.asprin.dev</h1>
-                    <p className="text-xs text-zinc-500">Secure Link v4.1</p>
+                    <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">Accessing Secure Link</h1>
+                    <p className="text-sm text-zinc-400">Please wait while we secure your connection.</p>
                 </div>
 
                 {/* Turnstile Container (Invisible) */}
                 <div ref={turnstileContainerRef} className="fixed bottom-4 right-4 opacity-0 pointer-events-none" />
 
-                {status === 'loading' && (
-                    <div className="text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-2 border-white/10 border-t-white mx-auto mb-4"></div>
-                        <h2 className="text-xl font-semibold text-white mb-2">
-                            Verifying...
-                        </h2>
-                        <p className="text-sm text-zinc-400">
-                            Checking security parameters
-                        </p>
-                    </div>
-                )}
-
-                {status === 'success' && (
-                    <div className="text-center">
-                        <div className="flex justify-center mb-4">
-                            <CheckCircle2 className="w-12 h-12 text-green-500" />
+                <div className="relative z-10 space-y-1">
+                    {status === 'error' ? (
+                        <div className="text-center py-6">
+                            <div className="flex justify-center mb-4">
+                                <AlertCircle className="w-16 h-16 text-red-500 opacity-90" />
+                            </div>
+                            <h2 className="text-xl font-bold text-red-500 mb-3">
+                                Access Denied
+                            </h2>
+                            <p className="text-sm text-red-400/80 mb-8 px-4 leading-relaxed">
+                                {error}
+                            </p>
+                            <button
+                                onClick={() => window.location.reload()}
+                                className="w-full py-4 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-400 font-bold rounded-xl transition-all active:scale-[0.98]"
+                            >
+                                Try Again
+                            </button>
                         </div>
-                        <h2 className="text-xl font-semibold text-white mb-2">
-                            Session Active
-                        </h2>
-                        <p className="text-sm text-zinc-400">
-                            Redirecting to destination...
-                        </p>
-                    </div>
-                )}
+                    ) : (
+                        /* Timeline */
+                        <div className="space-y-6 pl-4 relative">
+                            {/* Connector Line */}
+                            <div className="absolute left-[27px] top-4 bottom-4 w-0.5 bg-zinc-800" />
 
-                {status === 'error' && (
-                    <div className="text-center">
-                        <div className="flex justify-center mb-4">
-                            <AlertCircle className="w-12 h-12 text-red-500" />
+                            {timeline.map((item) => {
+                                const isActive = step === item.step;
+                                const isCompleted = step > item.step;
+                                const isPending = step < item.step;
+
+                                return (
+                                    <div key={item.step} className={`relative flex items-center gap-4 transition-all duration-500 ${isPending ? 'opacity-30' : 'opacity-100'}`}>
+                                        <div className={`
+                                            relative z-10 w-6 h-6 rounded-full flex items-center justify-center border transition-all duration-500
+                                            ${isCompleted ? 'bg-green-500 border-green-500 scale-100 shadow-[0_0_15px_rgba(34,197,94,0.3)]' : ''}
+                                            ${isActive ? 'bg-zinc-900 border-purple-500 scale-110 shadow-[0_0_15px_rgba(168,85,247,0.3)]' : ''}
+                                            ${isPending ? 'bg-zinc-900 border-zinc-800' : ''}
+                                        `}>
+                                            {isCompleted && <CheckCircle2 className="w-4 h-4 text-zinc-900" />}
+                                            {isActive && <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />}
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className={`text-sm font-medium transition-colors duration-300 ${isActive || isCompleted ? 'text-white' : 'text-zinc-600'}`}>
+                                                {item.label}
+                                            </p>
+                                            {isActive && (
+                                                <p className="text-xs text-purple-400 mt-0.5 animate-pulse">Processing...</p>
+                                            )}
+                                        </div>
+                                        {isActive && <Loader2 className="w-4 h-4 text-zinc-600 animate-spin" />}
+                                    </div>
+                                );
+                            })}
                         </div>
-                        <h2 className="text-xl font-bold text-red-500 mb-2">
-                            Access Denied
-                        </h2>
-                        <p className="text-sm text-red-400 mb-6 px-4">
-                            {error}
-                        </p>
-                        <button
-                            onClick={() => {
-                                // Clear params and reload
-                                window.location.reload();
-                            }}
-                            className="px-6 py-3 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-400 rounded-xl transition-all w-full font-medium"
-                        >
-                            Try Again
-                        </button>
-                    </div>
-                )}
+                    )}
+                </div>
 
-                <div className="mt-6 text-center">
-                    <p className="text-xs text-zinc-600">
-                        Secure Link v4.1
+                {/* Footer */}
+                <div className="mt-10 text-center border-t border-white/5 pt-6">
+                    <p className="text-[10px] text-zinc-600 uppercase tracking-widest font-medium">
+                        Secured by Asprin V4.1
                     </p>
                 </div>
             </div>
