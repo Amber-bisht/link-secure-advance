@@ -11,7 +11,44 @@ export async function POST(request: NextRequest) {
         await dbConnect();
         const cookieStore = await cookies();
         const body = await request.json();
-        const { slug, token, verified } = body;
+        const { slug, token, verified, turnstileToken } = body;
+
+        // 0. Cloudflare Turnstile Verification (Invisible RUM)
+        if (!turnstileToken) {
+            return NextResponse.json({
+                error: 'Security challenge failed (missing token)',
+                action: 'error_bot'
+            });
+        }
+
+        const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || '127.0.0.1';
+        const verifyData = new FormData();
+        verifyData.append('secret', process.env.TURNSTILE_SECRET_KEY || '');
+        verifyData.append('response', turnstileToken);
+        verifyData.append('remoteip', ip);
+
+        try {
+            const turnstileRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+                method: 'POST',
+                body: verifyData,
+            });
+
+            const turnstileResult = await turnstileRes.json();
+            if (!turnstileResult.success) {
+                console.error('Turnstile verification failed:', turnstileResult);
+                return NextResponse.json({
+                    error: 'Security verification failed. Please refresh.',
+                    action: 'error_bot'
+                });
+            }
+        } catch (tsErr) {
+            console.error('Turnstile API error:', tsErr);
+            // Fail open or closed? Closed for security.
+            return NextResponse.json({
+                error: 'Security service unavailable.',
+                action: 'error_bot'
+            });
+        }
 
         // 1. Check for Active Session via Cookie or Token (Verified or Active)
         // If we have a verified token incoming, we verify it and set cookie
@@ -96,7 +133,7 @@ export async function POST(request: NextRequest) {
 
         // Optimization: Check if there is already a PENDING session for this IP and Link
         // This prevents creating multiple sessions if the user refreshes the "Connecting..." page
-        const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || '127.0.0.1';
+        // ip is already defined above
 
         const existingPending = await Session.findOne({
             linkId: link._id,
