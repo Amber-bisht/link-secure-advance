@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ShieldCheck, AlertCircle, CheckCircle2, Loader2, ArrowRight } from "lucide-react";
