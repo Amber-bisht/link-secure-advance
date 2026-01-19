@@ -7,6 +7,9 @@ export interface IUser extends Document {
     role: 'user' | 'admin';
     validUntil: Date;
     linkShortifyKey?: string;
+    aroLinksKey?: string;
+    vpLinkKey?: string;
+    inShortUrlKey?: string;
     createdAt: Date;
 }
 
@@ -18,6 +21,9 @@ const UserSchema: Schema = new Schema({
     role: { type: String, enum: ['user', 'admin'], default: 'user' },
     validUntil: { type: Date }, // Will be set on creation via Auth events
     linkShortifyKey: String,
+    aroLinksKey: String,
+    vpLinkKey: String,
+    inShortUrlKey: String,
 }, {
     timestamps: true,
     collection: 'users' // Explicitly map to NextAuth's default collection

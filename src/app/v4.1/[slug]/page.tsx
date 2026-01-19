@@ -17,10 +17,84 @@ export default function V41RedirectPage() {
     const [status, setStatus] = useState<'loading' | 'processing' | 'success' | 'error'>('loading');
     const [error, setError] = useState('');
 
+    const getVisitStatus = () => {
+        try {
+            const now = new Date();
+            // Get IST Date String (e.g., "1/19/2026")
+            const istDate = now.toLocaleDateString("en-US", { timeZone: "Asia/Kolkata" });
+            const stored = localStorage.getItem('v4_visit_data');
+            let data = stored ? JSON.parse(stored) : null;
+
+            if (!data || data.date !== istDate) {
+                // Reset or Init for new day (IST)
+                data = {
+                    date: istDate,
+                    count: 0,
+                    lastVisit: 0
+                };
+            }
+
+            // Logic:
+            // If data.lastVisit is recent (< 3 mins), we consider this a refresh/continuation of the CURRENT count.
+            // If data.lastVisit is old (> 3 mins), we consider this a NEW visit attempt (count + 1).
+
+            const lastVisitTime = data.lastVisit || 0;
+            const diff = now.getTime() - lastVisitTime;
+            const buffer = 3 * 60 * 1000; // 3 minutes
+
+            // If it's the very first visit (count 0), we want visitNumber 1.
+            // If we have count 1 and inside buffer, we want visitNumber 1.
+            // If we have count 1 and outside buffer, we want visitNumber 2.
+
+            let visitNumber = data.count + 1;
+            if (data.count > 0 && diff < buffer) {
+                visitNumber = data.count;
+            }
+
+            return { visitNumber, data };
+        } catch (e) {
+            console.error("Visit status error", e);
+            return { visitNumber: 1, data: null }; // Fallback
+        }
+    };
+
+    const updateVisitStatus = (serverAction: string) => {
+        if (serverAction !== 'shorten') return;
+        try {
+            const now = new Date();
+            const istDate = now.toLocaleDateString("en-US", { timeZone: "Asia/Kolkata" });
+            const stored = localStorage.getItem('v4_visit_data');
+            let data = stored ? JSON.parse(stored) : { date: istDate, count: 0, lastVisit: 0 };
+
+            // Logic matching getVisitStatus:
+            // If we completed a visit 1, and we were "outside buffer" (so it was a new visit), we increment count.
+            // IF we were "inside buffer", we DON'T increment count (it was a replay).
+
+            const lastVisitTime = data.lastVisit || 0;
+            const diff = now.getTime() - lastVisitTime;
+            const buffer = 3 * 60 * 1000;
+
+            if (data.date !== istDate) {
+                // Should have been reset by getVisitStatus, but safe measure
+                data = { date: istDate, count: 1, lastVisit: now.getTime() };
+            } else {
+                if (data.count === 0 || diff > buffer) {
+                    data.count += 1;
+                }
+                data.lastVisit = now.getTime();
+            }
+
+            localStorage.setItem('v4_visit_data', JSON.stringify(data));
+        } catch (e) {
+            console.error("Update status error", e);
+        }
+    };
+
     useEffect(() => {
         const initVisit = async () => {
             try {
                 setStatus('loading');
+                const { visitNumber } = getVisitStatus();
 
                 const res = await fetch('/api/v4.1/visit', {
                     method: 'POST',
@@ -28,7 +102,8 @@ export default function V41RedirectPage() {
                     body: JSON.stringify({
                         slug,
                         token: token || undefined,
-                        verified: verified === 'true'
+                        verified: verified === 'true',
+                        visitNumber
                     })
                 });
 
@@ -39,7 +114,8 @@ export default function V41RedirectPage() {
                 }
 
                 if (data.action === 'shorten') {
-                    // Redirect to LinkShortify
+                    updateVisitStatus('shorten');
+                    // Redirect to LinkShortify/Others
                     window.location.href = data.url;
                     return;
                 }

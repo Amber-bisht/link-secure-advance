@@ -28,7 +28,13 @@ export async function GET(req: Request) {
         return NextResponse.json({
             validUntil: user.validUntil,
             role: user.role,
-            hasKey: !!user.linkShortifyKey
+            hasKey: !!user.linkShortifyKey,
+            keys: {
+                linkShortify: user.linkShortifyKey,
+                aroLinks: user.aroLinksKey,
+                vpLink: user.vpLinkKey,
+                inShortUrl: user.inShortUrlKey
+            }
         });
 
     } catch (error) {

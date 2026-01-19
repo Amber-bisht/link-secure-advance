@@ -31,6 +31,9 @@ export default function ShortPage() {
     const [isExpired, setIsExpired] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [apiKeyInput, setApiKeyInput] = useState('');
+    const [aroLinksKey, setAroLinksKey] = useState('');
+    const [vpLinkKey, setVpLinkKey] = useState('');
+    const [inShortUrlKey, setInShortUrlKey] = useState('');
     const [savingKey, setSavingKey] = useState(false);
     const [hasKey, setHasKey] = useState<boolean | null>(null);
     const [saveStatus, setSaveStatus] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
@@ -44,9 +47,14 @@ export default function ShortPage() {
                     setIsExpired(new Date(data.validUntil) < new Date());
                 }
                 setHasKey(data.hasKey);
+                // Populate keys if available
+                if (data.keys) {
+                    setApiKeyInput(data.keys.linkShortify || '');
+                    setAroLinksKey(data.keys.aroLinks || '');
+                    setVpLinkKey(data.keys.vpLink || '');
+                    setInShortUrlKey(data.keys.inShortUrl || '');
+                }
             });
-            // @ts-ignore
-            setApiKeyInput(session.user.linkShortifyKey || '');
         }
     }, [session, version]);
 
@@ -59,30 +67,33 @@ export default function ShortPage() {
     }, [version]);
 
     const handleSaveKey = async () => {
-        if (!apiKeyInput.trim()) return;
         setSavingKey(true);
         setSaveStatus(null);
         try {
             const res = await fetch('/api/user/update-key', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ key: apiKeyInput })
+                body: JSON.stringify({
+                    linkShortifyKey: apiKeyInput,
+                    aroLinksKey,
+                    vpLinkKey,
+                    inShortUrlKey
+                })
             });
             const data = await res.json();
 
             if (!res.ok) throw new Error(data.error || 'Failed to save');
 
-            setSaveStatus({ type: 'success', msg: 'Key verified and saved!' });
-            setHasKey(true);
+            setSaveStatus({ type: 'success', msg: 'Keys saved successfully!' });
+            setHasKey(!!apiKeyInput);
 
-            // Wait a bit then close
+            // Clear message after a delay
             setTimeout(() => {
-                setShowSettings(false);
                 setSaveStatus(null);
-            }, 2000);
+            }, 3000);
 
         } catch (e: any) {
-            setSaveStatus({ type: 'error', msg: e.message || 'Error saving key' });
+            setSaveStatus({ type: 'error', msg: e.message || 'Error saving keys' });
         } finally {
             setSavingKey(false);
         }
@@ -368,34 +379,82 @@ export default function ShortPage() {
                                             </div>
 
                                             <div className="space-y-6">
-                                                <div className="space-y-2">
-                                                    <div className="flex justify-between items-center">
-                                                        <label className="text-sm font-medium text-zinc-400">LinkShortify API Key</label>
-                                                        {hasKey && <span className="text-[10px] text-green-500 font-bold uppercase tracking-widest bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">Configured</span>}
+                                                <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                                                    <div className="space-y-2">
+                                                        <div className="flex justify-between items-center">
+                                                            <label className="text-sm font-medium text-zinc-400">LinkShortify Key (Priority 1 & Fallback)</label>
+                                                            {apiKeyInput && <span className="text-[10px] text-green-500 font-bold uppercase tracking-widest bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">Configured</span>}
+                                                        </div>
+                                                        <input
+                                                            type="text"
+                                                            value={apiKeyInput}
+                                                            onChange={(e) => setApiKeyInput(e.target.value)}
+                                                            onBlur={handleSaveKey}
+                                                            className="w-full bg-black/50 border border-white/10 rounded-xl p-4 text-white placeholder:text-zinc-700 outline-none focus:ring-2 focus:ring-purple-500/50 active:scale-[0.99] transition-all"
+                                                            placeholder="Paste LinkShortify Key"
+                                                        />
                                                     </div>
-                                                    <input
-                                                        type="text"
-                                                        value={apiKeyInput}
-                                                        onChange={(e) => setApiKeyInput(e.target.value)}
-                                                        className="w-full bg-black/50 border border-white/10 rounded-xl p-4 text-white placeholder:text-zinc-700 outline-none focus:ring-2 focus:ring-purple-500/50 active:scale-[0.99] transition-all"
-                                                        placeholder="Paste your key here"
-                                                    />
-                                                    <p className="text-[10px] text-zinc-500 px-1">We will test your key by generating a temporary short link before saving.</p>
+
+                                                    <div className="space-y-2">
+                                                        <div className="flex justify-between items-center">
+                                                            <label className="text-sm font-medium text-zinc-400">AroLinks Key (Optional - Priority 2)</label>
+                                                            {aroLinksKey && <span className="text-[10px] text-green-500 font-bold uppercase tracking-widest bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">Configured</span>}
+                                                        </div>
+                                                        <input
+                                                            type="text"
+                                                            value={aroLinksKey}
+                                                            onChange={(e) => setAroLinksKey(e.target.value)}
+                                                            onBlur={handleSaveKey}
+                                                            className="w-full bg-black/50 border border-white/10 rounded-xl p-4 text-white placeholder:text-zinc-700 outline-none focus:ring-2 focus:ring-purple-500/50 active:scale-[0.99] transition-all"
+                                                            placeholder="Paste AroLinks Key"
+                                                        />
+                                                    </div>
+
+                                                    <div className="space-y-2">
+                                                        <div className="flex justify-between items-center">
+                                                            <label className="text-sm font-medium text-zinc-400">VPLink Key (Optional - Priority 3)</label>
+                                                            {vpLinkKey && <span className="text-[10px] text-green-500 font-bold uppercase tracking-widest bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">Configured</span>}
+                                                        </div>
+                                                        <input
+                                                            type="text"
+                                                            value={vpLinkKey}
+                                                            onChange={(e) => setVpLinkKey(e.target.value)}
+                                                            onBlur={handleSaveKey}
+                                                            className="w-full bg-black/50 border border-white/10 rounded-xl p-4 text-white placeholder:text-zinc-700 outline-none focus:ring-2 focus:ring-purple-500/50 active:scale-[0.99] transition-all"
+                                                            placeholder="Paste VPLink Key"
+                                                        />
+                                                    </div>
+
+                                                    <div className="space-y-2">
+                                                        <div className="flex justify-between items-center">
+                                                            <label className="text-sm font-medium text-zinc-400">InShortUrl Key (Optional - Priority 4)</label>
+                                                            {inShortUrlKey && <span className="text-[10px] text-green-500 font-bold uppercase tracking-widest bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">Configured</span>}
+                                                        </div>
+                                                        <input
+                                                            type="text"
+                                                            value={inShortUrlKey}
+                                                            onChange={(e) => setInShortUrlKey(e.target.value)}
+                                                            onBlur={handleSaveKey}
+                                                            className="w-full bg-black/50 border border-white/10 rounded-xl p-4 text-white placeholder:text-zinc-700 outline-none focus:ring-2 focus:ring-purple-500/50 active:scale-[0.99] transition-all"
+                                                            placeholder="Paste InShortUrl Key"
+                                                        />
+                                                    </div>
+
+                                                    <p className="text-[10px] text-zinc-500 px-1">We will save these keys used for rotating traffic. Keep fields empty to skip providers.</p>
                                                 </div>
 
-                                                {saveStatus && (
+                                                {savingKey && (
+                                                    <div className="p-4 rounded-xl text-xs font-medium border bg-blue-500/10 border-blue-500/20 text-blue-500 flex items-center gap-2">
+                                                        <div className="w-3 h-3 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+                                                        Validating keys...
+                                                    </div>
+                                                )}
+
+                                                {saveStatus && !savingKey && (
                                                     <div className={`p-4 rounded-xl text-xs font-medium border ${saveStatus.type === 'success' ? 'bg-green-500/10 border-green-500/20 text-green-500' : 'bg-red-500/10 border-red-500/20 text-red-500'}`}>
                                                         {saveStatus.msg}
                                                     </div>
                                                 )}
-
-                                                <button
-                                                    onClick={handleSaveKey}
-                                                    disabled={savingKey || !apiKeyInput.trim()}
-                                                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold py-4 rounded-xl hover:opacity-90 active:scale-[0.98] transition-all shadow-lg shadow-purple-900/20 disabled:opacity-50"
-                                                >
-                                                    {savingKey ? 'Verifying & Saving...' : 'Save & Verify Account'}
-                                                </button>
                                             </div>
                                         </motion.div>
                                     )}
@@ -455,16 +514,14 @@ export default function ShortPage() {
                                                         />
                                                         <div className="flex-1 space-y-1">
                                                             <p className="text-sm text-zinc-200 font-medium">
-                                                                Works with <span className="text-blue-400">LinkShortify</span> keys only.
+                                                                Configure keys for <span className="text-blue-400">All Platforms</span>.
                                                             </p>
-                                                            <a
-                                                                href="https://linkshortify.com/ref/114386840386130679805"
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
+                                                            <button
+                                                                onClick={() => setShowSettings(true)}
                                                                 className="text-xs text-blue-400 hover:text-blue-300 underline underline-offset-2 flex items-center gap-1"
                                                             >
-                                                                Get your keys here
-                                                            </a>
+                                                                Click here to configure keys
+                                                            </button>
                                                         </div>
                                                     </div>
                                                 )}

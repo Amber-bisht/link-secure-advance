@@ -127,23 +127,64 @@ export async function POST(request: NextRequest) {
         const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'https://links.asprin.dev';
         const callbackUrl = `${origin}/v4.1/${slug}?token=${newSessionToken}&verified=true`;
 
-        // Shorten with LinkShortify
-        const linkShortifyUrl = `https://linkshortify.com/api?api=${owner.linkShortifyKey}&url=${encodeURIComponent(callbackUrl)}&format=text`;
+        // --- Rotation Logic ---
+        const visitNum = body.visitNumber || 1;
+
+        let providerKey = owner.linkShortifyKey;
+        let providerUrl = 'https://linkshortify.com/api';
+        let providerName = 'LinkShortify';
+
+        // Select Provider based on Visit Number
+        if (visitNum === 2) {
+            if (owner.aroLinksKey) {
+                providerKey = owner.aroLinksKey;
+                providerUrl = 'https://arolinks.com/api';
+                providerName = 'AroLinks';
+            }
+        } else if (visitNum === 3) {
+            if (owner.vpLinkKey) {
+                providerKey = owner.vpLinkKey;
+                providerUrl = 'https://vplink.in/api';
+                providerName = 'VPLink';
+            }
+        } else if (visitNum === 4) {
+            if (owner.inShortUrlKey) {
+                providerKey = owner.inShortUrlKey;
+                providerUrl = 'https://inshorturl.com/api';
+                providerName = 'InShortUrl';
+            }
+        }
+        // Visit 1 and Visit 5+ default to LinkShortify
+
+        const shortenApiUrl = `${providerUrl}?api=${providerKey}&url=${encodeURIComponent(callbackUrl)}&format=text`;
 
         let shortLink = '';
         try {
-            const lsResponse = await fetch(linkShortifyUrl);
+            const lsResponse = await fetch(shortenApiUrl);
             shortLink = await lsResponse.text();
             shortLink = shortLink.trim();
 
             if (!lsResponse.ok || !shortLink.startsWith('http')) {
-                console.error('LinkShortify Error:', shortLink);
-                throw new Error('LinkShortify API returned invalid response');
+                console.error(`${providerName} Error:`, shortLink);
+
+                // Fallback to LinkShortify if rotation failed and it wasn't LinkShortify
+                if (providerName !== 'LinkShortify') {
+                    console.log('Falling back to LinkShortify...');
+                    const fallbackUrl = `https://linkshortify.com/api?api=${owner.linkShortifyKey}&url=${encodeURIComponent(callbackUrl)}&format=text`;
+                    const fallbackRes = await fetch(fallbackUrl);
+                    shortLink = await fallbackRes.text();
+                    shortLink = shortLink.trim();
+                    if (!fallbackRes.ok || !shortLink.startsWith('http')) {
+                        throw new Error(`Fallback LinkShortify failed: ${shortLink}`);
+                    }
+                } else {
+                    throw new Error(`${providerName} API returned invalid response`);
+                }
             }
         } catch (lsError) {
-            console.error('LinkShortify Generation Failed:', lsError);
+            console.error('Shortener Generation Failed:', lsError);
             return NextResponse.json(
-                { error: 'LinkShortify Generation Failed' },
+                { error: 'Link Generation Failed' },
                 { status: 502 }
             );
         }
