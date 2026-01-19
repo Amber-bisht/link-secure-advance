@@ -134,18 +134,36 @@ export async function POST(request: NextRequest) {
         let providerUrl = 'https://linkshortify.com/api';
         let providerName = 'LinkShortify';
 
-        // Select Provider based on Visit Number
+        // Select Provider based on Visit Number with Sequential Fallback
+        // Logic:
+        // Visit 2: Try AroLinks -> VPLink -> InShortUrl -> LinkShortify
+        // Visit 3: Try VPLink -> InShortUrl -> LinkShortify
+        // Visit 4: Try InShortUrl -> LinkShortify
+        // Visit 1, 5+: LinkShortify
+
         if (visitNum === 2) {
             if (owner.aroLinksKey) {
                 providerKey = owner.aroLinksKey;
                 providerUrl = 'https://arolinks.com/api';
                 providerName = 'AroLinks';
+            } else if (owner.vpLinkKey) {
+                providerKey = owner.vpLinkKey;
+                providerUrl = 'https://vplink.in/api';
+                providerName = 'VPLink';
+            } else if (owner.inShortUrlKey) {
+                providerKey = owner.inShortUrlKey;
+                providerUrl = 'https://inshorturl.com/api';
+                providerName = 'InShortUrl';
             }
         } else if (visitNum === 3) {
             if (owner.vpLinkKey) {
                 providerKey = owner.vpLinkKey;
                 providerUrl = 'https://vplink.in/api';
                 providerName = 'VPLink';
+            } else if (owner.inShortUrlKey) {
+                providerKey = owner.inShortUrlKey;
+                providerUrl = 'https://inshorturl.com/api';
+                providerName = 'InShortUrl';
             }
         } else if (visitNum === 4) {
             if (owner.inShortUrlKey) {
@@ -154,7 +172,7 @@ export async function POST(request: NextRequest) {
                 providerName = 'InShortUrl';
             }
         }
-        // Visit 1 and Visit 5+ default to LinkShortify
+        // Fallback or Default is LinkShortify (already set)
 
         const shortenApiUrl = `${providerUrl}?api=${providerKey}&url=${encodeURIComponent(callbackUrl)}&format=text`;
 
