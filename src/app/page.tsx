@@ -6,6 +6,7 @@ import { Zap, Lock, Bot, ExternalLink, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { Footer } from "@/components/Footer";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -45,7 +46,7 @@ export default function Home() {
           <Link href="/" className="font-bold text-xl tracking-tighter hover:text-indigo-400 transition-colors">
             LINKS.ASPRIN.DEV
           </Link>
-          <div className="flex items-center gap-6 text-sm font-medium text-neutral-400">
+          <div className="flex items-center gap-6 text-sm font-medium text-neutral-300">
             <Link href="/short" className="hover:text-white transition-colors">
               Try /short
             </Link>
@@ -75,7 +76,7 @@ export default function Home() {
             A secure wrapper that protects your short links from <span className="text-indigo-400">bypass attempts</span>
           </motion.h1>
 
-          <motion.p variants={fadeIn} className="text-lg md:text-xl text-neutral-400 max-w-2xl leading-relaxed">
+          <motion.p variants={fadeIn} className="text-lg md:text-xl text-neutral-300 max-w-2xl leading-relaxed">
             Cheap link shorteners don’t protect links. They redirect. That’s it. Bots love that.
             <br className="hidden md:block" />
             We act as a middle layer adding validation, behaviour checks, and captcha before any redirect happens.
@@ -100,22 +101,22 @@ export default function Home() {
 
           <motion.div variants={fadeIn} className="pt-12 grid grid-cols-1 md:grid-cols-3 gap-6 w-full text-left">
             <div className="p-6 rounded-2xl bg-neutral-900/50 border border-white/5 backdrop-blur-sm">
-              <h3 className="font-semibold text-white mb-2 flex items-center gap-2">
+              <h2 className="font-semibold text-white mb-2 flex items-center gap-2">
                 <Zap size={18} className="text-yellow-400" /> Fast & Simple
-              </h3>
-              <p className="text-sm text-neutral-400">You keep your shortener. We protect it. Not simple. Not fragile.</p>
+              </h2>
+              <p className="text-sm text-neutral-300">You keep your shortener. We protect it. Not simple. Not fragile.</p>
             </div>
             <div className="p-6 rounded-2xl bg-neutral-900/50 border border-white/5 backdrop-blur-sm">
-              <h3 className="font-semibold text-white mb-2 flex items-center gap-2">
+              <h2 className="font-semibold text-white mb-2 flex items-center gap-2">
                 <Bot size={18} className="text-red-400" /> Bot Filtering
-              </h3>
-              <p className="text-sm text-neutral-400">Block direct & manual bypass attempts. Filter bot traffic before redirect.</p>
+              </h2>
+              <p className="text-sm text-neutral-300">Block direct & manual bypass attempts. Filter bot traffic before redirect.</p>
             </div>
             <div className="p-6 rounded-2xl bg-neutral-900/50 border border-white/5 backdrop-blur-sm">
-              <h3 className="font-semibold text-white mb-2 flex items-center gap-2">
+              <h2 className="font-semibold text-white mb-2 flex items-center gap-2">
                 <Lock size={18} className="text-green-400" /> Captcha Protected
-              </h3>
-              <p className="text-sm text-neutral-400">Add captcha validation (Google or self-hosted) before passing checks.</p>
+              </h2>
+              <p className="text-sm text-neutral-300">Add captcha validation (Google or self-hosted) before passing checks.</p>
             </div>
           </motion.div>
         </motion.div>
@@ -130,7 +131,7 @@ export default function Home() {
         >
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold tracking-tight mb-4">Security Evolution</h2>
-            <p className="text-neutral-400">We constantly evolve to stay ahead of bypassing scripts.</p>
+            <p className="text-neutral-300">We constantly evolve to stay ahead of bypassing scripts.</p>
           </div>
 
           <div className="relative">
@@ -159,7 +160,7 @@ export default function Home() {
                       <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                     </div>
                     <div className="font-semibold text-white">Captcha-backed validation</div>
-                    <div className="text-xs text-neutral-400 mt-1">Google reCAPTCHA v3</div>
+                    <div className="text-xs text-neutral-300 mt-1">Google reCAPTCHA v3</div>
                   </div>
                 </div>
               </div>
@@ -168,18 +169,7 @@ export default function Home() {
         </motion.div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-white/5 bg-black py-12 px-6">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-sm text-neutral-500">
-          <div>
-            &copy; {new Date().getFullYear()} Links by Asprin. All rights reserved.
-          </div>
-          <div className="flex items-center gap-6 font-mono">
-            <span className="text-xs border border-white/10 px-2 py-1 rounded">v4.0.0</span>
-            <a href="https://t.me/happySaturday_bitch" className="hover:text-indigo-400 transition-colors">DM Support</a>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
