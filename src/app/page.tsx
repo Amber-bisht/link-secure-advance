@@ -100,7 +100,7 @@ export default function Home() {
           </motion.div>
 
           <motion.div variants={fadeIn} className="pt-8 flex flex-col items-center space-y-4">
-            <p className="text-sm text-neutral-500 font-medium tracking-wide uppercase">Trusted & Integrated With</p>
+            <p className="text-sm text-neutral-400 font-medium tracking-wide uppercase">Trusted & Integrated With</p>
             <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12 transition-all duration-500">
               <a href="https://linkshortify.com" target="_blank" rel="noopener noreferrer" className="hover:scale-105 transition-transform">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
