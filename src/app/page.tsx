@@ -99,6 +99,28 @@ export default function Home() {
             </a>
           </motion.div>
 
+          <motion.div variants={fadeIn} className="pt-8 flex flex-col items-center space-y-4">
+            <p className="text-sm text-neutral-500 font-medium tracking-wide uppercase">Trusted & Integrated With</p>
+            <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12 transition-all duration-500">
+              <a href="https://linkshortify.com" target="_blank" rel="noopener noreferrer" className="hover:scale-105 transition-transform">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="https://pub-20da4aefbab14400b5ebb8424eaebaae.r2.dev/Website/logo.webp" alt="LinkShortify" className="h-8 w-auto object-contain" />
+              </a>
+              <a href="https://arolinks.com" target="_blank" rel="noopener noreferrer" className="hover:scale-105 transition-transform">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="https://i.imgur.com/gM8lGS8.png" alt="Arolinks" className="h-8 w-auto object-contain" />
+              </a>
+              <a href="https://inshorturl.com" target="_blank" rel="noopener noreferrer" className="hover:scale-105 transition-transform">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="https://media.licdn.com/dms/image/v2/D4E03AQHpR7PNBaEqWw/profile-displayphoto-shrink_200_200/B4EZX1c0kkH0AY-/0/1743579728746?e=2147483647&v=beta&t=GmJdF3W71yPdXygwf34cUv0cX9kWwB3gSL2vPN7Xpvk" alt="InShortUrl" className="h-8 w-auto object-contain rounded-full" />
+              </a>
+              <a href="http://vplink.in" target="_blank" rel="noopener noreferrer" className="hover:scale-105 transition-transform">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="https://i.imgur.com/Poww5Ea.png" alt="VPlinks" className="h-10 w-auto object-contain scale-125" />
+              </a>
+            </div>
+          </motion.div>
+
           <motion.div variants={fadeIn} className="pt-12 grid grid-cols-1 md:grid-cols-3 gap-6 w-full text-left">
             <div className="p-6 rounded-2xl bg-neutral-900/50 border border-white/5 backdrop-blur-sm">
               <h2 className="font-semibold text-white mb-2 flex items-center gap-2">
@@ -156,13 +178,27 @@ export default function Home() {
                 <div className="md:w-1/2 flex justify-start md:pl-12 pl-16 w-full">
                   <div className="bg-neutral-900/80 border border-indigo-500/30 p-4 rounded-xl backdrop-blur-sm max-w-sm w-full shadow-lg shadow-indigo-900/10">
                     <div className="text-indigo-400 font-mono text-xs mb-1 flex items-center gap-2">
-                      v4 (Current)
-                      <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                      v4 (Standard)
                     </div>
                     <div className="font-semibold text-white">Captcha-backed validation</div>
                     <div className="text-xs text-neutral-300 mt-1">Google reCAPTCHA v3</div>
                   </div>
                 </div>
+              </div>
+
+              <div className="relative flex flex-col md:flex-row items-center justify-between group">
+                <div className="md:w-1/2 flex justify-start md:justify-end md:pr-12 mb-4 md:mb-0 pl-16 md:pl-0 w-full">
+                  <div className="bg-neutral-900/80 border border-violet-500/30 p-4 rounded-xl backdrop-blur-sm max-w-sm w-full shadow-lg shadow-violet-900/10">
+                    <div className="text-violet-400 font-mono text-xs mb-1 flex items-center gap-2">
+                      v4.1 (Next Gen)
+                      <span className="w-2 h-2 bg-violet-500 rounded-full animate-pulse" />
+                    </div>
+                    <div className="font-semibold text-white">Multi-Platform Integration</div>
+                    <div className="text-xs text-neutral-300 mt-1">LinkShortify & Cloudflare Turnstile</div>
+                  </div>
+                </div>
+                <div className="absolute left-8 md:left-1/2 w-4 h-4 bg-violet-500 border-2 border-violet-300 rounded-full -translate-x-1/2 shadow-[0_0_20px_rgba(139,92,246,0.5)]" />
+                <div className="md:w-1/2" />
               </div>
             </div>
           </div>

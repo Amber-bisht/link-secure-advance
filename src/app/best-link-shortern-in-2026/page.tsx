@@ -2,7 +2,7 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import { ExternalLink, Check, X, AlertTriangle, Shield, DollarSign, Zap } from "lucide-react";
+import { ExternalLink, Check, X, AlertTriangle, Shield, DollarSign, Zap, Lock, Siren } from "lucide-react";
 import Link from "next/link";
 import { Footer } from "@/components/Footer";
 
@@ -13,147 +13,97 @@ const fadeIn = {
 };
 
 const data = {
-    "title": "Best Link Shortener in India",
+    "title": "Best Link Shortener in India (2026 Security Review)",
     "slug": "best-link-shortener-india",
-    "description": "Detailed comparison of top link shortener platforms in India with CPM rates, payout systems, anti-bypass protection, and publisher features.",
+    "description": "A critical look at the top link shorteners in India. Which ones actually protect your revenue from bot bypass scripts?",
     "region": "India",
-    "currency": "USD",
-    "traffic_type_supported": [
-        "Mobile",
-        "Desktop",
-        "Android WebView"
-    ],
     "last_updated": "2026-01-19",
     "services": [
         {
             "id": 1,
             "name": "Asprin Link Protect",
+            "logo": null,
             "official_website": "https://links.asprin.dev",
             "category": "Link Protection / Wrapper",
-            "short_page": "/short",
-            "monetization": false,
-            "primary_purpose": "Maximize earnings & prevent link bypass across all platforms",
-            "description": "The ultimate tool to maximize your profit from other shorteners. It wraps your monetized links to block bots and prevent bypassing, ensuring every click counts towards your revenue.",
-            "security_features": {
-                "captcha": true,
-                "cloudflare_protection": true,
-                "anti_bypass": true,
-                "fraud_detection": true
+            "type": "protection",
+            "description": "The only solution in this list that is NOT a standalone shortener but a security wrapper. It sits in front of your monetized links to filter traffic.",
+            "security_analysis": {
+                "bot_bypass": false,
+                "captcha": "Google reCAPTCHA v3 + Turnstile",
+                "anti_bypass_tech": "Behavioral Analysis + Session Tokens",
+                "verdict": "Secure"
             },
             "risk_level": "very_low"
         },
         {
             "id": 2,
             "name": "LinkShortify",
+            "logo": "https://pub-20da4aefbab14400b5ebb8424eaebaae.r2.dev/Website/logo.webp",
             "official_website": "https://linkshortify.com",
-            "status": "active",
-            "cpm_india": { "min": 8, "max": 10, "average": 9 },
-            "payout": {
-                "minimum_amount": 5,
-                "currency": "USD",
-                "frequency": "Weekly",
-                "payment_methods": ["UPI", "PayPal", "Payeer", "Crypto"]
+            "category": "Monetized Shortener",
+            "type": "service",
+            "description": "A popular high-paying shortener in India. While they have decent security, standalone links can still be targeted by updated bypass scripts without an extra layer.",
+            "security_analysis": {
+                "bot_bypass": true,
+                "captcha": "Standard (Turnstile)",
+                "anti_bypass_tech": "Basic IP filtering",
+                "verdict": "Vulnerable to sophisticated bots"
             },
-            "traffic_rules": {
-                "per_ip_count": 1,
-                "session_duration_minutes": 6,
-                "vpn_allowed": false,
-                "proxy_allowed": false
-            },
-            "security_features": {
-                "captcha": true,
-                "cloudflare_protection": true,
-                "anti_bypass": true,
-                "fraud_detection": true
-            },
-            "risk_level": "low"
+            "cpm": "$9.00",
+            "risk_level": "medium"
         },
         {
             "id": 3,
             "name": "Arolinks",
+            "logo": "https://i.imgur.com/gM8lGS8.png",
             "official_website": "https://arolinks.com",
-            "status": "active",
-            "cpm_india": { "min": 6, "max": 8, "average": 7 },
-            "payout": {
-                "minimum_amount": 2,
-                "currency": "USD",
-                "frequency": "Daily",
-                "payment_methods": ["UPI", "PayPal", "Google Pay", "PhonePe"]
+            "category": "Monetized Shortener",
+            "type": "service",
+            "description": "Known for daily payments and good support. Security is standard for the industry but lacks advanced behavioural checks.",
+            "security_analysis": {
+                "bot_bypass": true,
+                "captcha": "Standard",
+                "anti_bypass_tech": "None significant",
+                "verdict": "Bypassable"
             },
-            "security_features": {
-                "captcha": true,
-                "cloudflare_protection": false,
-                "anti_bypass": true,
-                "fraud_detection": true
-            },
-            "risk_level": "low"
+            "cpm": "$7.00",
+            "risk_level": "medium"
         },
         {
             "id": 4,
             "name": "VPlinks",
+            "logo": "https://i.imgur.com/Poww5Ea.png",
             "official_website": "http://vplink.in",
-            "status": "unverified",
-            "cpm_india": { "min": 6, "max": 8, "average": 7 },
-            "payout": {
-                "minimum_amount": null,
-                "currency": "USD",
-                "frequency": "Unknown",
-                "payment_methods": []
+            "category": "Monetized Shortener",
+            "type": "service",
+            "description": "Standard shortener with reasonable rates. Like most direct shorteners, it is susceptible to automated bypass tools.",
+            "security_analysis": {
+                "bot_bypass": true,
+                "captcha": "Basic",
+                "anti_bypass_tech": "Claimed",
+                "verdict": "High Risk"
             },
-            "security_features": {
-                "captcha": "unknown",
-                "cloudflare_protection": "unknown",
-                "anti_bypass": "claimed",
-                "fraud_detection": "unknown"
-            },
+            "cpm": "$7.00",
             "risk_level": "high"
         },
         {
             "id": 5,
             "name": "InShortUrl",
+            "logo": "https://media.licdn.com/dms/image/v2/D4E03AQHpR7PNBaEqWw/profile-displayphoto-shrink_200_200/B4EZX1c0kkH0AY-/0/1743579728746?e=2147483647&v=beta&t=GmJdF3W71yPdXygwf34cUv0cX9kWwB3gSL2vPN7Xpvk",
+            "category": "Monetized Shortener",
+            "type": "service",
             "official_website": "https://inshorturl.com",
-            "category": "Monetized Link Shortener",
-            "status": "active",
-            "cpm_india": { "min": 0, "max": 10, "average": 10, "notes": "Advertised up to $10 CPM for Indian traffic" },
-            "payout": {
-                "minimum_amount": 5,
-                "currency": "USD",
-                "frequency": "Monthly",
-                "payment_methods": [
-                    "UPI",
-                    "Google Pay",
-                    "Paytm",
-                    "PhonePe",
-                    "FamPay",
-                    "Bank Transfer",
-                    "USDT",
-                    "Bitcoin",
-                    "Digital Gift Cards"
-                ],
-                "payout_timing": "Monthly, up to 72 hours for withdrawal"
+            "description": "Offers high CPM rates but strict traffic rules. Without external protection, invalid traffic usually leads to account bans rather than just blocked clicks.",
+            "security_analysis": {
+                "bot_bypass": true,
+                "captcha": "Standard",
+                "anti_bypass_tech": "Strict Rules (Ban Risk)",
+                "verdict": "Bypassable"
             },
-            "security_features": {
-                "captcha": true,
-                "cloudflare_protection": false,
-                "anti_bypass": true,
-                "fraud_detection": true
-            },
-            "publisher_features": [
-                "Detailed link analytics",
-                "Telegram bot integration",
-                "API access",
-                "Referral earnings"
-            ],
-            "risk_level": "medium",
-            "notes": "Offers interstitial ads and CPM earnings; traffic quality affects payout"
+            "cpm": "$10.00",
+            "risk_level": "medium"
         }
-    ],
-    "editor_notes": {
-        "cpm_disclaimer": "Advertised CPM rates are not guaranteed and vary by traffic quality, device and demand.",
-        "anti_bypass_tip": "Use link protection layers (like Asprin Link Protect) with monetized shorteners to reduce bypass losses.",
-        "payout_note": "Always verify payout terms and minimum thresholds before choosing a service.",
-        "optimization_tip": "Using session-based URL rotation can increase effective earnings without violating platform policies."
-    }
+    ]
 };
 
 export default function ComparisonPage() {
@@ -192,15 +142,15 @@ export default function ComparisonPage() {
                 </div>
             </motion.nav>
 
-            <main className="relative z-10 pt-32 pb-20 px-6 max-w-7xl mx-auto">
+            <main className="relative z-10 pt-32 pb-20 px-6 max-w-4xl mx-auto">
                 <motion.div
                     initial="initial"
                     animate="animate"
                     variants={fadeIn}
-                    className="space-y-12"
+                    className="space-y-16"
                 >
-                    <div className="text-center max-w-3xl mx-auto space-y-4">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-neutral-400 mb-2">
+                    <div className="text-center space-y-6">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-neutral-400">
                             <span>{data.region}</span>
                             <span className="w-1 h-1 bg-neutral-500 rounded-full" />
                             <span>Updated {data.last_updated}</span>
@@ -208,82 +158,122 @@ export default function ComparisonPage() {
                         <h1 className="text-4xl md:text-6xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-white to-white/60">
                             {data.title}
                         </h1>
-                        <p className="text-lg text-neutral-300">
+                        <p className="text-xl text-neutral-300 max-w-2xl mx-auto leading-relaxed">
                             {data.description}
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-12">
                         {data.services.map((service, idx) => (
-                            <div key={service.id} className="relative group">
-                                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-2xl blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100" />
-                                <div className="relative h-full bg-neutral-900/50 border border-white/5 p-6 rounded-2xl backdrop-blur-md hover:border-white/10 transition-colors flex flex-col">
-                                    <div className="flex justify-between items-start mb-6">
-                                        <div>
-                                            <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                                                {service.name}
-                                                {service.status === 'active' && <Check size={16} className="text-green-500" />}
-                                                {service.status === 'unverified' && <AlertTriangle size={16} className="text-yellow-500" />}
-                                            </h3>
-                                            {service.category && <p className="text-xs text-indigo-400">{service.category}</p>}
-                                        </div>
-                                        <div className={`px-3 py-1 rounded-full text-xs font-semibold ${service.risk_level === 'low' || service.risk_level === 'very_low' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-                                            }`}>
-                                            {service.risk_level === 'very_low' ? 'Low Risk' : service.risk_level.replace('_', ' ').toUpperCase()}
-                                        </div>
-                                    </div>
+                            <section key={service.id} className="relative group">
+                                <div className="absolute -inset-4 bg-gradient-to-b from-white/5 to-transparent rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity -z-10" />
 
-                                    <div className="grid grid-cols-2 gap-4 mb-6">
-                                        {service.cpm_india && (
-                                            <div className="space-y-1">
-                                                <p className="text-xs text-neutral-500 flex items-center gap-1"><DollarSign size={12} /> CPM (India)</p>
-                                                <p className="text-sm font-mono text-neutral-200">${service.cpm_india.average} <span className="text-neutral-600">(${service.cpm_india.min}-${service.cpm_india.max})</span></p>
+                                <div className="border border-white/10 bg-neutral-900/50 rounded-2xl p-8 backdrop-blur-sm">
+                                    <div className="flex flex-col md:flex-row gap-6 md:items-start mb-6">
+                                        {/* @ts-ignore */}
+                                        {service.logo ? (
+                                            <div className="flex-shrink-0">
+                                                <Link href={service.official_website} target="_blank">
+                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                    <img
+                                                        /* @ts-ignore */
+                                                        src={service.logo}
+                                                        alt={service.name}
+                                                        className="w-16 h-16 rounded-xl object-contain bg-white/5 border border-white/10"
+                                                    />
+                                                </Link>
+                                            </div>
+                                        ) : (
+                                            <div className="w-16 h-16 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center flex-shrink-0">
+                                                <Shield className="text-indigo-400" size={32} />
                                             </div>
                                         )}
-                                        {service.payout && (
-                                            <div className="space-y-1">
-                                                <p className="text-xs text-neutral-500 flex items-center gap-1"><Zap size={12} /> Min Payout</p>
-                                                <p className="text-sm font-mono text-neutral-200">${service.payout.minimum_amount} <span className="text-neutral-600">({service.payout.frequency})</span></p>
-                                            </div>
-                                        )}
-                                    </div>
 
-                                    <div className="space-y-3 mb-6 flex-grow">
-                                        <p className="text-xs text-neutral-500 uppercase tracking-wider font-semibold">Security</p>
-                                        <div className="grid grid-cols-2 gap-2 text-sm text-neutral-300">
-                                            <div className="flex items-center gap-2">
-                                                {service.security_features.captcha !== false ? <Shield size={14} className="text-indigo-400" /> : <X size={14} className="text-neutral-600" />}
-                                                <span>Captcha</span>
+                                        <div className="flex-grow">
+                                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
+                                                <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                                                    {service.name}
+                                                    {service.risk_level === 'very_low' && <span className="px-3 py-1 bg-green-500/20 text-green-400 text-xs rounded-full font-mono flex items-center gap-1"><Check size={12} /> Low Risk</span>}
+                                                </h2>
+                                                <div className="flex gap-4 text-sm font-mono text-neutral-400">
+                                                    {/* @ts-ignore */}
+                                                    {service.cpm && <span>Avg CPM: <span className="text-white">{service.cpm}</span></span>}
+                                                </div>
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                                {service.security_features.anti_bypass === true ? <Check size={14} className="text-green-400" /> : <AlertTriangle size={14} className="text-yellow-400" />}
-                                                <span>Anti-Bypass</span>
+                                            <p className="text-neutral-400 leading-relaxed mb-6">
+                                                {service.description}
+                                            </p>
+
+                                            {/* Security Analysis Blog Block */}
+                                            <div className="bg-black/40 rounded-xl p-6 border border-white/5">
+                                                <h3 className="text-sm font-semibold text-neutral-200 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                                    <Lock size={14} className="text-indigo-400" /> Security Analysis
+                                                </h3>
+
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                    <div>
+                                                        <div className="mb-4">
+                                                            <span className="text-xs text-neutral-500 block mb-1">Bot Bypass (Scripts)</span>
+                                                            <div className="flex items-center gap-2">
+                                                                {service.security_analysis.bot_bypass ? (
+                                                                    <span className="text-red-400 font-bold flex items-center gap-2">
+                                                                        <AlertTriangle size={16} /> Possible
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-green-400 font-bold flex items-center gap-2">
+                                                                        <Shield size={16} /> Protected
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <span className="text-xs text-neutral-500 block mb-1">Anti-Bypass Tech</span>
+                                                            <div className="text-neutral-300 text-sm">
+                                                                {service.security_analysis.anti_bypass_tech}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="border-l border-white/10 pl-6">
+                                                        <div className="mb-4">
+                                                            <span className="text-xs text-neutral-500 block mb-1">Captcha System</span>
+                                                            <div className="text-neutral-300 text-sm">{service.security_analysis.captcha}</div>
+                                                        </div>
+
+                                                        {service.id === 1 ? (
+                                                            <div className="text-xs text-indigo-300/80 bg-indigo-500/10 p-2 rounded mt-2">
+                                                                * This is the only true anti-bypass solution.
+                                                            </div>
+                                                        ) : (
+                                                            <div className="text-xs text-red-300/60 bg-red-500/5 p-2 rounded mt-2">
+                                                                * Can be bypassed by advanced tools.
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="mt-6 flex justify-end">
+                                                <Link
+                                                    href={service.official_website}
+                                                    target="_blank"
+                                                    className="text-sm font-medium text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
+                                                >
+                                                    Visit Website <ExternalLink size={12} />
+                                                </Link>
                                             </div>
                                         </div>
-                                    </div>
-
-                                    <div className="pt-6 border-t border-white/5 mt-auto">
-                                        <a
-                                            href={service.official_website !== 'N/A' ? service.official_website : '#'}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className={`w-full flex justify-center items-center gap-2 py-3 rounded-lg font-medium transition-transform active:scale-95 ${service.official_website !== 'N/A'
-                                                ? 'bg-white text-black hover:bg-neutral-200'
-                                                : 'bg-neutral-800 text-neutral-500 cursor-not-allowed'
-                                                }`}
-                                        >
-                                            {service.official_website !== 'N/A' ? 'Visit Website' : 'Website N/A'}
-                                            {service.official_website !== 'N/A' && <ExternalLink size={16} />}
-                                        </a>
                                     </div>
                                 </div>
-                            </div>
+                            </section>
                         ))}
                     </div>
 
-                    <div className="bg-indigo-900/10 border border-indigo-500/20 rounded-xl p-6">
-                        <h4 className="text-indigo-300 font-semibold mb-2 flex items-center gap-2"><Zap size={18} /> Editor's Note</h4>
-                        <p className="text-sm text-indigo-200/80">{data.editor_notes.optimization_tip}</p>
+                    <div className="bg-indigo-900/10 border border-indigo-500/20 rounded-xl p-8 text-center max-w-2xl mx-auto">
+                        <h4 className="text-indigo-300 font-semibold mb-2 flex items-center justify-center gap-2"><Siren size={20} /> The Verdict</h4>
+                        <p className="text-indigo-200/80 leading-relaxed">
+                            For maximum earnings, use a high-paying shortener like <strong>LinkShortify</strong> or <strong>InShortUrl</strong>, but <strong>ALWAYS</strong> wrap it with <strong>Asprin Link Protect</strong> to stop bots from getting your account banned.
+                        </p>
                     </div>
 
                 </motion.div>
