@@ -3,6 +3,8 @@ import { decodeLinkV4 } from '@/utils/linkWrapper';
 import { verifyCaptcha, verifyCustomCaptcha } from '@/utils/captcha';
 import { verifyTurnstile } from '@/utils/turnstile';
 import { CAPTCHA_CONFIG } from '@/config/captcha';
+import dbConnect from '@/lib/db';
+import SuspiciousIP from '@/models/SuspiciousIP';
 
 export async function POST(request: NextRequest) {
     try {
@@ -29,6 +31,14 @@ export async function POST(request: NextRequest) {
         }
 
         if (!isCaptchaValid) {
+            // Log Suspicious IP
+            await dbConnect();
+            const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || '127.0.0.1';
+            await SuspiciousIP.create({
+                ipAddress: ip,
+                reason: 'Captcha verification failed (V4)'
+            });
+
             return NextResponse.json(
                 { error: 'CAPTCHA verification failed. Please try again.' },
                 { status: 403 }
