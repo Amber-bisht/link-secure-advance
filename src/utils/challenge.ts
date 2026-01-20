@@ -189,9 +189,9 @@ export function verifyClientProof(
     }
 
     // BOT KILLER: Check if the challenge was solved too fast
-    // Legitimate users take at least 3 seconds to load scripts, wait for UX, and compute proof.
+    // Legitimate users take at least 2 seconds to load scripts, wait for UX, and compute proof.
     const duration = now - challenge.createdAt;
-    if (duration < 3000) {
+    if (duration < 2000) {
         return { valid: false, error: 'Bot detected (Submission too fast)' };
     }
 
