@@ -39,10 +39,11 @@ export default function V4RedirectPage() {
 
                 // Step 1: Checking
                 setStep(1);
-                await new Promise(resolve => setTimeout(resolve, 800)); // Fake delay for UX
+                await new Promise(resolve => setTimeout(resolve, 1500)); // Increased UX delay
 
                 // Step 2: Security
                 setStep(2);
+                await new Promise(resolve => setTimeout(resolve, 1500)); // Increased UX delay
 
                 // Check if CAPTCHA is configured
                 const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;

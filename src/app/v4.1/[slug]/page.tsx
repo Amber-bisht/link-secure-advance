@@ -195,7 +195,13 @@ export default function V41RedirectPage() {
         }
         setChallenge(challengeData);
 
+        // Step 1: Small UX delay
+        setStep(1);
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
         setStep(2); // Script loaded, waiting for widget/token
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
         if ((window as any).turnstile) {
             (window as any).turnstile.render(turnstileContainerRef.current, {
                 sitekey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY, // Access from .env

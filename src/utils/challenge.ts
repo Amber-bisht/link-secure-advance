@@ -188,6 +188,13 @@ export function verifyClientProof(
         return { valid: false, error: 'Timing validation failed (clock skew)' };
     }
 
+    // BOT KILLER: Check if the challenge was solved too fast
+    // Legitimate users take at least 3 seconds to load scripts, wait for UX, and compute proof.
+    const duration = now - challenge.createdAt;
+    if (duration < 3000) {
+        return { valid: false, error: 'Bot detected (Submission too fast)' };
+    }
+
     // Validate entropy exists and has sufficient length
     if (!entropy || entropy.length < 10) {
         return { valid: false, error: 'Invalid or missing entropy' };

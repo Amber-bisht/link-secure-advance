@@ -170,6 +170,11 @@ export function decodeLinkV3(slug: string): string {
 // Layer 2: Reverse string
 // Layer 3: Byte shuffling with pattern
 // Layer 4: Base64 encoding
+// V4 Logic: Multi-layer encryption (CAPTCHA Protected)
+// Layer 1: Caesar cipher with dynamic shift
+// Layer 2: Reverse string
+// Layer 3: Byte shuffling with pattern
+// Layer 4: Base64 encoding
 const V4_SECRET_SHIFT = 17; // Caesar cipher shift
 const V4_SHUFFLE_PATTERN = [2, 0, 3, 1]; // Byte shuffle pattern
 

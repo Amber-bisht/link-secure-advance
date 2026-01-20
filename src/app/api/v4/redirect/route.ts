@@ -11,6 +11,25 @@ export async function POST(request: NextRequest) {
     try {
         await dbConnect();
 
+        // BOT KILLER: Strict Header Validation
+        const referer = request.headers.get('referer') || '';
+        const origin = request.headers.get('origin') || '';
+        const host = request.headers.get('host') || '';
+        const secFetchSite = request.headers.get('sec-fetch-site');
+        const secFetchDest = request.headers.get('sec-fetch-dest');
+
+        // 1. Origin/Referer must match host
+        const isSelfReferenced = referer.includes(host) || origin.includes(host);
+        if (!isSelfReferenced) {
+            return NextResponse.json({ error: 'Direct access forbidden' }, { status: 403 });
+        }
+
+        // 2. Browser-specific behavior check (Sec-Fetch headers)
+        // Most bots don't implement these or set them to 'cross-site'
+        if (secFetchSite && secFetchSite !== 'same-origin') {
+            return NextResponse.json({ error: 'Security violation: Cross-site request blocked' }, { status: 403 });
+        }
+
         const body = await request.json();
         const { slug, captchaToken, challenge_id, timing, entropy } = body;
 

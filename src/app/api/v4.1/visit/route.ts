@@ -9,6 +9,24 @@ import { cookies } from 'next/headers';
 export async function POST(request: NextRequest) {
     try {
         await dbConnect();
+
+        // BOT KILLER: Strict Header Validation
+        const referer = request.headers.get('referer') || '';
+        const requestOrigin = request.headers.get('origin') || '';
+        const host = request.headers.get('host') || '';
+        const secFetchSite = request.headers.get('sec-fetch-site');
+
+        // 1. Origin/Referer must match host
+        const isSelfReferenced = referer.includes(host) || requestOrigin.includes(host);
+        if (!isSelfReferenced) {
+            return NextResponse.json({ error: 'Direct access forbidden', action: 'error_bot' }, { status: 403 });
+        }
+
+        // 2. Browser-specific behavior check (Sec-Fetch headers)
+        if (secFetchSite && secFetchSite !== 'same-origin') {
+            return NextResponse.json({ error: 'Security violation: Cross-site request blocked', action: 'error_bot' }, { status: 403 });
+        }
+
         const cookieStore = await cookies();
         const body = await request.json();
         const { slug, token, verified, turnstileToken, challenge_id, timing, entropy } = body;

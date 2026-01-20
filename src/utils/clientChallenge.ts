@@ -39,30 +39,22 @@ export async function fetchChallenge(): Promise<Challenge | null> {
 }
 
 /**
- * Compute HMAC-SHA256 using Web Crypto API
+ * Internal trace generation mechanism
+ * @private
  */
-async function computeHMAC(secret: string, message: string): Promise<string> {
-    // Convert hex secret to ArrayBuffer
-    const secretBytes = new Uint8Array(secret.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16)));
+async function generateTrace(k: string, m: string): Promise<string> {
+    // Hidden buffer transformation
+    const _b = new Uint8Array(k.match(/.{1,2}/g)!.map(x => parseInt(x, 16)));
 
-    // Import the key
-    const key = await crypto.subtle.importKey(
-        'raw',
-        secretBytes,
-        { name: 'HMAC', hash: 'SHA-256' },
-        false,
-        ['sign']
+    const _k = await crypto.subtle.importKey(
+        'raw', _b, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
     );
 
-    // Convert message to ArrayBuffer
-    const messageBytes = new TextEncoder().encode(message);
+    const _m = new TextEncoder().encode(m);
+    const _s = await crypto.subtle.sign('HMAC', _k, _m);
 
-    // Compute HMAC
-    const signature = await crypto.subtle.sign('HMAC', key, messageBytes);
-
-    // Convert to hex string
-    return Array.from(new Uint8Array(signature))
-        .map(b => b.toString(16).padStart(2, '0'))
+    return Array.from(new Uint8Array(_s))
+        .map(x => x.toString(16).padStart(2, '0'))
         .join('');
 }
 
@@ -93,7 +85,7 @@ export async function prepareChallengeData(challenge: Challenge): Promise<Challe
 
         // Compute proof: HMAC(rotating_secret, challenge_id + timing + entropy)
         const message = `${challenge.challenge_id}${timing}${entropy}`;
-        const proof = await computeHMAC(challenge.rotating_secret, message);
+        const proof = await generateTrace(challenge.rotating_secret, message);
 
         return {
             challenge_id: challenge.challenge_id,
