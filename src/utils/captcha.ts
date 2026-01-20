@@ -4,10 +4,12 @@ export async function verifyCaptcha(token: string): Promise<boolean> {
     try {
         const secretKey = process.env.RECAPTCHA_SECRET_KEY;
 
-        // Development mode: Skip CAPTCHA if no secret key configured
+        // IMPORTANT: Fail closed in production if secret is missing.
+        // (Fail-open here becomes an instant bypass if env vars are misconfigured.)
         if (!secretKey) {
-            console.warn('⚠️  RECAPTCHA_SECRET_KEY not configured - bypassing verification (DEV MODE)');
-            return true; // Allow in development
+            const isProd = process.env.NODE_ENV === 'production';
+            console.warn('⚠️  RECAPTCHA_SECRET_KEY not configured');
+            return !isProd; // allow only in non-production
         }
 
         // Use the siteverify endpoint (works for both v2 and v3)

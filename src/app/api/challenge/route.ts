@@ -11,6 +11,7 @@ import { getClientIp } from '@/utils/ip';
 export async function GET(request: NextRequest) {
     try {
         const ip = getClientIp(request);
+        const userAgent = request.headers.get('user-agent') || '';
 
         // Generate challenge with rate limiting
         const challenge = generateChallenge(ip);
@@ -22,12 +23,15 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        // Return challenge data to client
-        // Note: rotating_secret is intentionally sent to client for proof computation
+        // Bind UA (optional, but helps reduce replay across different clients)
+        // Stored on server only; client doesn't need it.
+        challenge.uaHash = require('crypto').createHash('sha256').update(userAgent).digest('hex');
+
+        // Return challenge data to client (NO server secret shipped)
         return NextResponse.json({
             challenge_id: challenge.challenge_id,
             nonce: challenge.nonce,
-            rotating_secret: challenge.rotating_secret,
+            difficulty: challenge.difficulty,
             signature: challenge.signature,
             expiresAt: challenge.expiresAt
         });

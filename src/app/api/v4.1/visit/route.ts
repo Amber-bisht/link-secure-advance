@@ -29,12 +29,12 @@ export async function POST(request: NextRequest) {
 
         const cookieStore = await cookies();
         const body = await request.json();
-        const { slug, token, verified, turnstileToken, challenge_id, timing, entropy } = body;
+        const { slug, token, verified, turnstileToken, challenge_id, timing, entropy, counter } = body;
 
         // Security Layer 1: Challenge Verification
         const clientProof = request.headers.get('x-client-proof');
 
-        if (!challenge_id || !clientProof || timing === undefined || !entropy) {
+        if (!challenge_id || !clientProof || timing === undefined || !entropy || counter === undefined) {
             return NextResponse.json({
                 error: 'Security challenge required',
                 action: 'error_bot'
@@ -43,7 +43,9 @@ export async function POST(request: NextRequest) {
 
         // Security Layer 2: Client Proof Verification
         const { verifyClientProof } = await import('@/utils/challenge');
-        const proofResult = verifyClientProof(challenge_id, clientProof, timing, entropy);
+        const ua = request.headers.get('user-agent') || '';
+        const ipForBind = request.headers.get('x-forwarded-for')?.split(',')[0] || '127.0.0.1';
+        const proofResult = verifyClientProof(challenge_id, clientProof, timing, entropy, counter, ipForBind, ua);
 
         if (!proofResult.valid) {
             return NextResponse.json({

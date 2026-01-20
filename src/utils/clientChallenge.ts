@@ -6,7 +6,7 @@
 export interface Challenge {
     challenge_id: string;
     nonce: string;
-    rotating_secret: string;
+    difficulty: number; // leading hex zeros required
     signature: string;
     expiresAt: number;
 }
@@ -16,6 +16,7 @@ interface ChallengeData {
     timing: number;
     entropy: string;
     proof: string;
+    counter: number;
 }
 
 /**
@@ -38,23 +39,11 @@ export async function fetchChallenge(): Promise<Challenge | null> {
     }
 }
 
-/**
- * Internal trace generation mechanism
- * @private
- */
-async function generateTrace(k: string, m: string): Promise<string> {
-    // Hidden buffer transformation
-    const _b = new Uint8Array(k.match(/.{1,2}/g)!.map(x => parseInt(x, 16)));
-
-    const _k = await crypto.subtle.importKey(
-        'raw', _b, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
-    );
-
-    const _m = new TextEncoder().encode(m);
-    const _s = await crypto.subtle.sign('HMAC', _k, _m);
-
-    return Array.from(new Uint8Array(_s))
-        .map(x => x.toString(16).padStart(2, '0'))
+async function sha256Hex(message: string): Promise<string> {
+    const data = new TextEncoder().encode(message);
+    const digest = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(digest))
+        .map(b => b.toString(16).padStart(2, '0'))
         .join('');
 }
 
@@ -83,15 +72,33 @@ export async function prepareChallengeData(challenge: Challenge): Promise<Challe
         const timing = Date.now();
         const entropy = generateEntropy();
 
-        // Compute proof: HMAC(rotating_secret, challenge_id + timing + entropy)
-        const message = `${challenge.challenge_id}${timing}${entropy}`;
-        const proof = await generateTrace(challenge.rotating_secret, message);
+        // Proof-of-work:
+        // Find counter such that sha256(challenge_id + nonce + timing + entropy + counter)
+        // starts with N leading '0' (hex).
+        const prefix = '0'.repeat(Math.max(0, challenge.difficulty || 0));
+        let counter = 0;
+        let proof = '';
+        const maxTries = 500_000;
+
+        while (counter < maxTries) {
+            const message = `${challenge.challenge_id}${challenge.nonce}${timing}${entropy}${counter}`;
+            // eslint-disable-next-line no-await-in-loop
+            proof = await sha256Hex(message);
+            if (proof.startsWith(prefix)) break;
+            counter += 1;
+        }
+
+        if (!proof || !proof.startsWith(prefix)) {
+            console.error('Proof-of-work generation failed');
+            return null;
+        }
 
         return {
             challenge_id: challenge.challenge_id,
             timing,
             entropy,
-            proof
+            proof,
+            counter
         };
     } catch (error) {
         console.error('Error preparing challenge data:', error);
@@ -130,7 +137,8 @@ export async function makeProtectedRequest<T = any>(
         ...existingBody,
         challenge_id: challengeData.challenge_id,
         timing: challengeData.timing,
-        entropy: challengeData.entropy
+        entropy: challengeData.entropy,
+        counter: challengeData.counter
     };
 
     // Add X-Client-Proof header
@@ -176,7 +184,8 @@ export async function getChallenge(): Promise<{ data: ChallengeData; headers: Re
             challenge_id: challengeData.challenge_id,
             timing: challengeData.timing,
             entropy: challengeData.entropy,
-            proof: challengeData.proof
+            proof: challengeData.proof,
+            counter: challengeData.counter
         },
         headers: {
             'X-Client-Proof': challengeData.proof,

@@ -139,7 +139,8 @@ export default function V41RedirectPage() {
                     turnstileToken,
                     challenge_id: challengeData.challenge_id,
                     timing: challengeData.timing,
-                    entropy: challengeData.entropy
+                    entropy: challengeData.entropy,
+                    counter: challengeData.counter
                 })
             });
 

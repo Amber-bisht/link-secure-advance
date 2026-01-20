@@ -157,7 +157,8 @@ export default function V4RedirectPage() {
                     captchaToken: captchaToken,
                     challenge_id: challengeData.challenge_id,
                     timing: challengeData.timing,
-                    entropy: challengeData.entropy
+                    entropy: challengeData.entropy,
+                    counter: challengeData.counter
                 }),
             });
 

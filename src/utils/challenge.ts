@@ -8,16 +8,19 @@ import crypto from 'crypto';
 interface Challenge {
     challenge_id: string;
     nonce: string;
-    rotating_secret: string;
+    difficulty: number; // number of leading hex '0' required
     signature: string;
     expiresAt: number;
     createdAt: number;
+    ip: string;
+    uaHash: string;
 }
 
 interface ClientProof {
     proof: string;
     timing: number;
     entropy: string;
+    counter: number;
 }
 
 // In-memory challenge store
@@ -32,6 +35,9 @@ const CHALLENGE_EXPIRATION = 5 * 60 * 1000;
 // Timing tolerance for clock skew (±5 seconds)
 const TIMING_TOLERANCE = 5 * 1000;
 
+// Proof-of-work difficulty (leading hex zeros). Tune based on traffic.
+const DEFAULT_DIFFICULTY = 3;
+
 // Rate limiting per IP
 const rateLimitStore = new Map<string, number[]>();
 const MAX_CHALLENGES_PER_MINUTE = 10;
@@ -40,20 +46,16 @@ const MAX_CHALLENGES_PER_MINUTE = 10;
  * Get the current rotating secret based on time slot
  * Secret rotates every 30 seconds
  */
-function getCurrentRotatingSecret(): string {
-    const challengeSecret = process.env.CHALLENGE_SECRET;
-    if (!challengeSecret) {
-        throw new Error('CHALLENGE_SECRET not configured');
-    }
+function hmacHex(key: string, msg: string): string {
+    return crypto.createHmac('sha256', key).update(msg).digest('hex');
+}
 
-    // Get current 30-second time slot
-    const timeSlot = Math.floor(Date.now() / ROTATION_INTERVAL);
+function sha256Hex(msg: string): string {
+    return crypto.createHash('sha256').update(msg).digest('hex');
+}
 
-    // Generate rotating secret by hashing the time slot with main secret
-    return crypto
-        .createHmac('sha256', challengeSecret)
-        .update(`rotating_${timeSlot}`)
-        .digest('hex');
+function uaToHash(ua: string): string {
+    return sha256Hex(ua || ''); // stable, non-reversible fingerprint
 }
 
 /**
@@ -99,26 +101,25 @@ export function generateChallenge(ip: string): Challenge | null {
     // Generate nonce
     const nonce = crypto.randomBytes(16).toString('hex');
 
-    // Get current rotating secret
-    const rotating_secret = getCurrentRotatingSecret();
+    const difficulty = DEFAULT_DIFFICULTY;
 
     // Calculate expiration time
     const expiresAt = now + CHALLENGE_EXPIRATION;
 
-    // Create signature: HMAC(CHALLENGE_SECRET, challenge_id + nonce + expiresAt)
-    const signature = crypto
-        .createHmac('sha256', challengeSecret)
-        .update(`${challenge_id}${nonce}${expiresAt}`)
-        .digest('hex');
+    // NOTE: Signature protects challenge params from tampering.
+    // We intentionally do NOT ship any server secret to the client.
+    const signature = hmacHex(challengeSecret, `${challenge_id}${nonce}${expiresAt}${difficulty}${ip}`);
 
     // Store challenge
     const challenge: Challenge = {
         challenge_id,
         nonce,
-        rotating_secret,
+        difficulty,
         signature,
         expiresAt,
-        createdAt: now
+        createdAt: now,
+        ip,
+        uaHash: '' // filled by route (optional) or left blank
     };
 
     challengeStore.set(challenge_id, challenge);
@@ -148,10 +149,10 @@ export function verifyChallenge(challenge_id: string): { valid: boolean; error?:
         throw new Error('CHALLENGE_SECRET not configured');
     }
 
-    const expectedSignature = crypto
-        .createHmac('sha256', challengeSecret)
-        .update(`${challenge.challenge_id}${challenge.nonce}${challenge.expiresAt}`)
-        .digest('hex');
+    const expectedSignature = hmacHex(
+        challengeSecret,
+        `${challenge.challenge_id}${challenge.nonce}${challenge.expiresAt}${challenge.difficulty}${challenge.ip}`
+    );
 
     // Constant-time comparison to prevent timing attacks
     if (!crypto.timingSafeEqual(Buffer.from(challenge.signature), Buffer.from(expectedSignature))) {
@@ -164,13 +165,17 @@ export function verifyChallenge(challenge_id: string): { valid: boolean; error?:
 
 /**
  * Verify client proof (X-Client-Proof header)
- * Proof = HMAC(rotating_secret, challenge_id + timing + entropy)
+ * Proof-of-work: sha256(challenge_id + nonce + timing + entropy + counter)
+ * Must have `difficulty` leading hex '0' characters.
  */
 export function verifyClientProof(
     challenge_id: string,
     proof: string,
     timing: number,
-    entropy: string
+    entropy: string,
+    counter: number,
+    ip?: string,
+    userAgent?: string
 ): { valid: boolean; error?: string } {
     // Verify challenge first
     const challengeResult = verifyChallenge(challenge_id);
@@ -179,6 +184,19 @@ export function verifyClientProof(
     }
 
     const challenge = challengeResult.challenge;
+
+    // Bind to IP (best-effort) to reduce token reuse across IPs
+    if (ip && challenge.ip && ip !== challenge.ip) {
+        return { valid: false, error: 'IP mismatch' };
+    }
+
+    // Optional UA binding (only if stored at creation time)
+    if (challenge.uaHash) {
+        const incomingUaHash = uaToHash(userAgent || '');
+        if (incomingUaHash !== challenge.uaHash) {
+            return { valid: false, error: 'User-Agent mismatch' };
+        }
+    }
 
     // Validate timing (must be within ±5 seconds of server time)
     const now = Date.now();
@@ -200,17 +218,16 @@ export function verifyClientProof(
         return { valid: false, error: 'Invalid or missing entropy' };
     }
 
-    // Compute expected proof
-    // Client computes: HMAC(rotating_secret_bytes, challenge_id + timing + entropy)
-    const message = `${challenge_id}${timing}${entropy}`;
+    if (!Number.isFinite(counter) || counter < 0 || counter > 5_000_000) {
+        return { valid: false, error: 'Invalid counter' };
+    }
 
-    // We must parse the hex secret into a Buffer to match the client's raw byte usage
-    const secretBuffer = Buffer.from(challenge.rotating_secret, 'hex');
-
-    const expectedProof = crypto
-        .createHmac('sha256', secretBuffer)
-        .update(message)
-        .digest('hex');
+    const message = `${challenge_id}${challenge.nonce}${timing}${entropy}${counter}`;
+    const expectedProof = sha256Hex(message);
+    const prefix = '0'.repeat(Math.max(0, challenge.difficulty));
+    if (!expectedProof.startsWith(prefix)) {
+        return { valid: false, error: 'Proof-of-work failed' };
+    }
 
     // Constant-time comparison
     try {
@@ -264,7 +281,6 @@ setInterval(() => {
 export const _testing = {
     challengeStore,
     rateLimitStore,
-    getCurrentRotatingSecret,
     ROTATION_INTERVAL,
     CHALLENGE_EXPIRATION,
     TIMING_TOLERANCE
