@@ -9,6 +9,8 @@ import { getClientIp } from '@/utils/ip';
 
 export async function POST(request: NextRequest) {
     try {
+        await dbConnect();
+
         const body = await request.json();
         const { slug, captchaToken } = body;
 
@@ -33,7 +35,6 @@ export async function POST(request: NextRequest) {
 
         if (!isCaptchaValid) {
             // Log Suspicious IP
-            await dbConnect();
             const ip = getClientIp(request);
             await SuspiciousIP.create({
                 ipAddress: ip,
