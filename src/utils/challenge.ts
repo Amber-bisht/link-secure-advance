@@ -26,8 +26,8 @@ const challengeStore = new Map<string, Challenge>();
 // Rotating secret rotation interval (30 seconds)
 const ROTATION_INTERVAL = 30 * 1000;
 
-// Challenge expiration time (60 seconds)
-const CHALLENGE_EXPIRATION = 60 * 1000;
+// Challenge expiration time (5 minutes)
+const CHALLENGE_EXPIRATION = 5 * 60 * 1000;
 
 // Timing tolerance for clock skew (±5 seconds)
 const TIMING_TOLERANCE = 5 * 1000;
@@ -189,9 +189,9 @@ export function verifyClientProof(
     }
 
     // BOT KILLER: Check if the challenge was solved too fast
-    // Legitimate users take at least 2 seconds to load scripts, wait for UX, and compute proof.
+    // Legitimate users take at least 1 second to load scripts, wait for UX, and compute proof.
     const duration = now - challenge.createdAt;
-    if (duration < 2000) {
+    if (duration < 1000) {
         return { valid: false, error: 'Bot detected (Submission too fast)' };
     }
 
