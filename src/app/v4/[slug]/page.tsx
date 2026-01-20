@@ -5,6 +5,9 @@ import { useParams, useRouter } from "next/navigation";
 import { ShieldCheck, AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { CAPTCHA_CONFIG } from "@/config/captcha";
 import Script from "next/script";
+import { fetchChallenge, prepareChallengeData } from "@/utils/clientChallenge";
+import type { Challenge } from "@/utils/clientChallenge";
+import { initAntiInspect } from "@/utils/antiDebugging";
 
 export default function V4RedirectPage() {
     const params = useParams();
@@ -15,6 +18,7 @@ export default function V4RedirectPage() {
     const [step, setStep] = useState(1);
     const [status, setStatus] = useState<'loading' | 'processing' | 'success' | 'error'>('loading');
     const [error, setError] = useState('');
+    const [challenge, setChallenge] = useState<Challenge | null>(null);
 
     // Turnstile ref (for V4 Turnstile mode)
     // We use a div ID in V4 logic usually, but we can use ref if we change logic slightly.
@@ -23,8 +27,16 @@ export default function V4RedirectPage() {
     const turnstileContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
+        initAntiInspect();
         const verifyAndRedirect = async () => {
             try {
+                // Step 0: Fetch Challenge
+                const challengeData = await fetchChallenge();
+                if (!challengeData) {
+                    throw new Error('Failed to obtain security challenge');
+                }
+                setChallenge(challengeData);
+
                 // Step 1: Checking
                 setStep(1);
                 await new Promise(resolve => setTimeout(resolve, 800)); // Fake delay for UX
@@ -117,14 +129,34 @@ export default function V4RedirectPage() {
         setStep(3);
 
         try {
+            // Prepare challenge data - fetch if not already available
+            let currentChallenge = challenge;
+            if (!currentChallenge) {
+                currentChallenge = await fetchChallenge();
+                if (currentChallenge) setChallenge(currentChallenge);
+            }
+
+            if (!currentChallenge) {
+                throw new Error('Security challenge not available');
+            }
+
+            const challengeData = await prepareChallengeData(currentChallenge);
+            if (!challengeData) {
+                throw new Error('Failed to prepare security challenge');
+            }
+
             const response = await fetch('/api/v4/redirect', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'X-Client-Proof': challengeData.proof
                 },
                 body: JSON.stringify({
                     slug: slug,
                     captchaToken: captchaToken,
+                    challenge_id: challengeData.challenge_id,
+                    timing: challengeData.timing,
+                    entropy: challengeData.entropy
                 }),
             });
 

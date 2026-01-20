@@ -11,7 +11,28 @@ export async function POST(request: NextRequest) {
         await dbConnect();
         const cookieStore = await cookies();
         const body = await request.json();
-        const { slug, token, verified, turnstileToken } = body;
+        const { slug, token, verified, turnstileToken, challenge_id, timing, entropy } = body;
+
+        // Security Layer 1: Challenge Verification
+        const clientProof = request.headers.get('x-client-proof');
+
+        if (!challenge_id || !clientProof || timing === undefined || !entropy) {
+            return NextResponse.json({
+                error: 'Security challenge required',
+                action: 'error_bot'
+            }, { status: 403 });
+        }
+
+        // Security Layer 2: Client Proof Verification
+        const { verifyClientProof } = await import('@/utils/challenge');
+        const proofResult = verifyClientProof(challenge_id, clientProof, timing, entropy);
+
+        if (!proofResult.valid) {
+            return NextResponse.json({
+                error: `Security verification failed: ${proofResult.error}`,
+                action: 'error_bot'
+            }, { status: 403 });
+        }
 
         // 0. Cloudflare Turnstile Verification (Invisible RUM)
         if (!turnstileToken) {

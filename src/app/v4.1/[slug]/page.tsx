@@ -4,6 +4,8 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ShieldCheck, AlertCircle, CheckCircle2, Loader2, ArrowRight } from "lucide-react";
 import Script from "next/script";
+import { fetchChallenge, prepareChallengeData, type Challenge } from "@/utils/clientChallenge";
+import { initAntiInspect } from "@/utils/antiDebugging";
 
 export default function V41RedirectPage() {
     const params = useParams();
@@ -20,9 +22,14 @@ export default function V41RedirectPage() {
     const [step, setStep] = useState(1);
     const [status, setStatus] = useState<'loading' | 'processing' | 'success' | 'error'>('loading');
     const [error, setError] = useState('');
+    const [challenge, setChallenge] = useState<Challenge | null>(null);
 
     // Turnstile ref
     const turnstileContainerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        initAntiInspect();
+    }, []);
 
     const getVisitStatus = () => {
         try {
@@ -102,15 +109,37 @@ export default function V41RedirectPage() {
             setStep(3); // Establishing Session
             const { visitNumber } = getVisitStatus();
 
+            // Prepare challenge data - fetch if not already available
+            let currentChallenge = challenge;
+            if (!currentChallenge) {
+                currentChallenge = await fetchChallenge();
+                if (currentChallenge) setChallenge(currentChallenge);
+            }
+
+            if (!currentChallenge) {
+                throw new Error('Security challenge not available');
+            }
+
+            const challengeData = await prepareChallengeData(currentChallenge);
+            if (!challengeData) {
+                throw new Error('Failed to prepare security challenge');
+            }
+
             const res = await fetch('/api/v4.1/visit', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Client-Proof': challengeData.proof
+                },
                 body: JSON.stringify({
                     slug,
                     token: token || undefined,
                     verified: verified === 'true',
                     visitNumber,
-                    turnstileToken
+                    turnstileToken,
+                    challenge_id: challengeData.challenge_id,
+                    timing: challengeData.timing,
+                    entropy: challengeData.entropy
                 })
             });
 
@@ -155,8 +184,17 @@ export default function V41RedirectPage() {
         }
     };
 
-    // Render Turnstile when script loads
-    const handleScriptLoad = () => {
+    // Fetch challenge and render Turnstile when script loads
+    const handleScriptLoad = async () => {
+        // Fetch challenge first
+        const challengeData = await fetchChallenge();
+        if (!challengeData) {
+            setError('Failed to obtain security challenge');
+            setStatus('error');
+            return;
+        }
+        setChallenge(challengeData);
+
         setStep(2); // Script loaded, waiting for widget/token
         if ((window as any).turnstile) {
             (window as any).turnstile.render(turnstileContainerRef.current, {
