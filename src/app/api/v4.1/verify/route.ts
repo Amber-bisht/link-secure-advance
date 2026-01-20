@@ -5,6 +5,7 @@ import { CAPTCHA_CONFIG } from '@/config/captcha';
 import dbConnect from '@/lib/db';
 import Session from '@/models/Session';
 import SuspiciousIP from '@/models/SuspiciousIP';
+import { getClientIp } from '@/utils/ip';
 
 export async function POST(request: NextRequest) {
     try {
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
         if (!isCaptchaValid) {
             // Log Suspicious IP
             await dbConnect();
-            const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || '127.0.0.1';
+            const ip = getClientIp(request);
             await SuspiciousIP.create({
                 ipAddress: ip,
                 reason: 'Captcha verification failed'
@@ -47,6 +48,21 @@ export async function POST(request: NextRequest) {
 
         // Look up Session
         await dbConnect();
+
+        // Security Check: Too many recent failures?
+        const ip = getClientIp(request);
+        const recentFailures = await SuspiciousIP.countDocuments({
+            ipAddress: ip,
+            createdAt: { $gt: new Date(Date.now() - 60 * 60 * 1000) } // Last 1 hour
+        });
+
+        if (recentFailures >= 5) {
+            return NextResponse.json(
+                { error: 'Too many failed attempts. Please try again later.' },
+                { status: 403 }
+            );
+        }
+
         // slug here is the token
         const session = await Session.findOne({ token: slug });
 

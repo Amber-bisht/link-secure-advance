@@ -5,6 +5,7 @@ import { verifyTurnstile } from '@/utils/turnstile';
 import { CAPTCHA_CONFIG } from '@/config/captcha';
 import dbConnect from '@/lib/db';
 import SuspiciousIP from '@/models/SuspiciousIP';
+import { getClientIp } from '@/utils/ip';
 
 export async function POST(request: NextRequest) {
     try {
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
         if (!isCaptchaValid) {
             // Log Suspicious IP
             await dbConnect();
-            const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || '127.0.0.1';
+            const ip = getClientIp(request);
             await SuspiciousIP.create({
                 ipAddress: ip,
                 reason: 'Captcha verification failed (V4)'
@@ -41,6 +42,20 @@ export async function POST(request: NextRequest) {
 
             return NextResponse.json(
                 { error: 'CAPTCHA verification failed. Please try again.' },
+                { status: 403 }
+            );
+        }
+
+        // Security Check: Too many recent failures?
+        const ip = getClientIp(request);
+        const recentFailures = await SuspiciousIP.countDocuments({
+            ipAddress: ip,
+            createdAt: { $gt: new Date(Date.now() - 60 * 60 * 1000) } // Last 1 hour
+        });
+
+        if (recentFailures >= 5) {
+            return NextResponse.json(
+                { error: 'Too many failed attempts. Please try again later.' },
                 { status: 403 }
             );
         }
