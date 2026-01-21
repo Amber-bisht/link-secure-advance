@@ -6,6 +6,7 @@ import { CAPTCHA_CONFIG } from '@/config/captcha';
 import dbConnect from '@/lib/db';
 import SuspiciousIP from '@/models/SuspiciousIP';
 import { getClientIp } from '@/utils/ip';
+import { verifyRequestSignature } from '@/utils/requestIntegrity';
 
 export async function POST(request: NextRequest) {
     try {
@@ -31,7 +32,28 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { slug, captchaToken, challenge_id, timing, entropy, counter } = body;
+        const { slug, captchaToken, challenge_id, timing, entropy, counter, _sig, _ts } = body;
+
+        // ===== Security Layer 0: Request Integrity (if signature provided) =====
+        // If client provides signature, verify request hasn't been tampered with
+        if (_sig && _ts) {
+            // Extract the original body (without signature fields)
+            const { _sig: _, _ts: __, ...originalBody } = body;
+            const sigResult = verifyRequestSignature(originalBody, _ts, _sig);
+
+            if (!sigResult.valid) {
+                console.log(`[SECURITY] Request signature verification failed: ${sigResult.error}`);
+                const ip = getClientIp(request);
+                await SuspiciousIP.create({
+                    ipAddress: ip,
+                    reason: `Request tampering detected: ${sigResult.error}`
+                });
+                return NextResponse.json(
+                    { error: 'Request integrity verification failed' },
+                    { status: 403 }
+                );
+            }
+        }
 
         // Security Layer 1: Challenge Verification
         const clientProof = request.headers.get('x-client-proof');
