@@ -45,30 +45,59 @@ export async function verifyCaptcha(token: string): Promise<boolean> {
     }
 }
 
-export async function verifyCustomCaptcha(token: string): Promise<boolean> {
+/**
+ * Verify Custom CAPTCHA token using server-side siteverify endpoint
+ * Works like Cloudflare Turnstile / Google reCAPTCHA verification
+ * 
+ * @param token - The captcha success token from frontend
+ * @param remoteip - Optional client IP for additional verification
+ */
+export async function verifyCustomCaptcha(token: string, remoteip?: string): Promise<boolean> {
     try {
-        const response = await fetch('https://captcha.asprin.dev/api/v3/verify', {
+        const secretKey = process.env.CUSTOM_CAPTCHA_SECRET_KEY;
+        const captchaApiUrl = process.env.CUSTOM_CAPTCHA_API_URL || 'https://captcha-p.asprin.dev/api/image';
+
+        // IMPORTANT: Fail closed in production if secret is missing
+        if (!secretKey) {
+            const isProd = process.env.NODE_ENV === 'production';
+            console.warn('⚠️  CUSTOM_CAPTCHA_SECRET_KEY not configured');
+            return !isProd; // allow only in non-production
+        }
+
+        if (!token || typeof token !== 'string') {
+            console.error('Custom CAPTCHA: Invalid token format');
+            return false;
+        }
+
+        // Call the siteverify endpoint (like Cloudflare/Google)
+        const response = await fetch(`${captchaApiUrl}/api/siteverify`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ token }),
+            body: JSON.stringify({
+                secret: secretKey,
+                response: token,
+                remoteip: remoteip || undefined,
+            }),
         });
 
         const data = await response.json();
 
         if (!data.success) {
-            console.error('Custom CAPTCHA verification failed:', data.reasons);
-        } else {
-            console.log('Custom CAPTCHA score:', data.score);
+            console.error('Custom CAPTCHA verification failed:', data['error-codes'] || data.message);
+            return false;
         }
 
-        return data.success && data.passed;
+        console.log('Custom CAPTCHA: Token verified successfully at', data.challenge_ts);
+        return true;
     } catch (error) {
         console.error('Custom CAPTCHA verification error:', error);
         return false;
     }
 }
+
+
 
 
 // Check if request is from Railway domain

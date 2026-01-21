@@ -47,9 +47,10 @@ export async function POST(request: NextRequest) {
 
         // Verify CAPTCHA
         let isCaptchaValid = false;
+        const clientIp = getClientIp(request);
 
         if (CAPTCHA_CONFIG.own === 1) {
-            isCaptchaValid = await verifyCustomCaptcha(captchaToken);
+            isCaptchaValid = await verifyCustomCaptcha(captchaToken, clientIp);
         } else if (CAPTCHA_CONFIG.own === 2) {
             isCaptchaValid = await verifyTurnstile(captchaToken);
         } else {

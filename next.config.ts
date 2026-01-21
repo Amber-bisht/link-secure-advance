@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
       { hostname: "i.imgur.com" },
       { hostname: "pub-20da4aefbab14400b5ebb8424eaebaae.r2.dev" },
       { hostname: "media.licdn.com" },
+      { hostname: "captcha-p.asprin.dev" },
     ],
   },
 };

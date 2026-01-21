@@ -5,9 +5,16 @@ import { useParams, useRouter } from "next/navigation";
 import { ShieldCheck, AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { CAPTCHA_CONFIG } from "@/config/captcha";
 import Script from "next/script";
+import dynamic from "next/dynamic";
 import { fetchChallenge, prepareChallengeData } from "@/utils/clientChallenge";
 import type { Challenge } from "@/utils/clientChallenge";
 import { initAntiInspect } from "@/utils/antiDebugging";
+
+// Dynamic import for the image captcha modal
+const ImageCaptchaModal = dynamic(() => import("@/components/ImageCaptchaModal"), {
+    ssr: false,
+    loading: () => null,
+});
 
 export default function V4RedirectPage() {
     const params = useParams();
@@ -20,10 +27,10 @@ export default function V4RedirectPage() {
     const [error, setError] = useState('');
     const [challenge, setChallenge] = useState<Challenge | null>(null);
 
+    // Image captcha modal state (for own === 1)
+    const [showImageCaptcha, setShowImageCaptcha] = useState(false);
+
     // Turnstile ref (for V4 Turnstile mode)
-    // We use a div ID in V4 logic usually, but we can use ref if we change logic slightly.
-    // However, existing V4 logic used ID '#turnstile-widget'. We can keep using ID for compatibility 
-    // or switch to Ref. Ref is cleaner.
     const turnstileContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -70,21 +77,11 @@ export default function V4RedirectPage() {
 
                 let token = '';
 
-                // Custom Captcha (own === 1)
+                // Custom Image Captcha (own === 1)
                 if (CAPTCHA_CONFIG.own === 1) {
-                    if (!(window as any).CustomCaptchaV3) {
-                        const script = document.createElement('script');
-                        script.src = `https://captcha.asprin.dev/captcha-v3.js`;
-                        script.onerror = () => { throw new Error('Failed to load security verification'); };
-                        document.head.appendChild(script);
-                        await new Promise((resolve, reject) => {
-                            script.onload = resolve;
-                            script.onerror = reject;
-                        });
-                    }
-                    await new Promise(resolve => setTimeout(resolve, 1000)); // UX delay
-                    token = (window as any).CustomCaptchaV3.execute(slug, 'redirect');
-                    await submitVerification(token);
+                    // Show the image captcha modal
+                    setShowImageCaptcha(true);
+                    // The modal will handle verification and call submitVerification
                     return;
                 }
 
@@ -212,6 +209,24 @@ export default function V4RedirectPage() {
         }
     };
 
+    // Handler for image captcha verification
+    const handleImageCaptchaVerified = async (token: string) => {
+        setShowImageCaptcha(false);
+        await submitVerification(token);
+    };
+
+    const handleImageCaptchaClose = () => {
+        setShowImageCaptcha(false);
+        setError('Verification cancelled');
+        setStatus('error');
+    };
+
+    const handleImageCaptchaError = (errorMsg: string) => {
+        setShowImageCaptcha(false);
+        setError(errorMsg);
+        setStatus('error');
+    };
+
     const timeline = [
         { step: 1, label: "Checking Link Status" },
         { step: 2, label: "Verifying Security Scope" },
@@ -221,6 +236,16 @@ export default function V4RedirectPage() {
 
     return (
         <div className="flex min-h-screen items-center justify-center bg-black font-sans selection:bg-purple-500/30">
+            {/* Image CAPTCHA Modal (own === 1) */}
+            {CAPTCHA_CONFIG.own === 1 && (
+                <ImageCaptchaModal
+                    isOpen={showImageCaptcha}
+                    onVerified={handleImageCaptchaVerified}
+                    onClose={handleImageCaptchaClose}
+                    onError={handleImageCaptchaError}
+                />
+            )}
+
             {/* Load Turnstile Script if needed */}
             {CAPTCHA_CONFIG.own === 2 && (
                 <Script
