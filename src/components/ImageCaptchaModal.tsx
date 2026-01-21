@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import { Loader2, RefreshCw, X, ShieldCheck, CheckCircle2, RotateCw, Type, Eye } from "lucide-react";
 import { solvePoW } from "@/utils/pow";
@@ -146,7 +146,7 @@ export default function ImageCaptchaModal({
                 <input
                     type="text"
                     value={honeyPot}
-                    onChange={(e) => setHoneyPot(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHoneyPot(e.target.value)}
                     className="absolute opacity-0 pointer-events-none"
                     tabIndex={-1}
                     autoComplete="off"
@@ -171,8 +171,8 @@ export default function ImageCaptchaModal({
                                         placeholder="Type the characters"
                                         className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-purple-500 outline-none transition-all"
                                         value={textAnswer}
-                                        onChange={(e) => setTextAnswer(e.target.value)}
-                                        onKeyDown={(e) => e.key === 'Enter' && handleVerify()}
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTextAnswer(e.target.value)}
+                                        onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && handleVerify()}
                                     />
                                 </div>
                             )}
@@ -196,7 +196,7 @@ export default function ImageCaptchaModal({
                                         max="35"
                                         step="1"
                                         value={currentFrame}
-                                        onChange={(e) => {
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                             setCurrentFrame(parseInt(e.target.value));
                                             interactions.current++;
                                         }}
@@ -225,7 +225,7 @@ export default function ImageCaptchaModal({
                 {/* Footer */}
                 <div className="mt-6 pt-4 border-t border-zinc-900/50 flex items-center justify-between text-[10px] uppercase tracking-widest text-zinc-600">
                     <span>V3.0 Hybrid</span>
-                    <button onClick={fetchChallenge} className="hover:text-purple-400 flex items-center gap-1">
+                    <button onClick={() => fetchChallenge()} className="hover:text-purple-400 flex items-center gap-1">
                         <RefreshCw className="w-3 h-3" /> Refresh
                     </button>
                 </div>
