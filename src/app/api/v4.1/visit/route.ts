@@ -5,6 +5,8 @@ import Session from '@/models/Session';
 import Link from '@/models/Link';
 import User from '@/models/User';
 import { cookies } from 'next/headers';
+import { verifyTurnstile } from '@/utils/turnstile';
+import { getClientIp } from '@/utils/ip';
 
 export async function POST(request: NextRequest) {
     try {
@@ -59,36 +61,16 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({
                 error: 'Security challenge failed (missing token)',
                 action: 'error_bot'
-            });
+            }, { status: 403 });
         }
 
-        const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || '127.0.0.1';
-        const verifyData = new FormData();
-        verifyData.append('secret', process.env.TURNSTILE_SECRET_KEY || '');
-        verifyData.append('response', turnstileToken);
-        verifyData.append('remoteip', ip);
-
-        try {
-            const turnstileRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-                method: 'POST',
-                body: verifyData,
-            });
-
-            const turnstileResult = await turnstileRes.json();
-            if (!turnstileResult.success) {
-                console.error('Turnstile verification failed:', turnstileResult);
-                return NextResponse.json({
-                    error: 'Security verification failed. Please refresh.',
-                    action: 'error_bot'
-                });
-            }
-        } catch (tsErr) {
-            console.error('Turnstile API error:', tsErr);
-            // Fail open or closed? Closed for security.
+        const ip = getClientIp(request);
+        const isTurnstileValid = await verifyTurnstile(turnstileToken);
+        if (!isTurnstileValid) {
             return NextResponse.json({
-                error: 'Security service unavailable.',
+                error: 'Security verification failed. Please refresh.',
                 action: 'error_bot'
-            });
+            }, { status: 403 });
         }
 
         // 1. Check for Active Session via Cookie or Token (Verified or Active)
@@ -115,7 +97,7 @@ export async function POST(request: NextRequest) {
                         return NextResponse.json({
                             error: 'You have bypassed through bot or extension. Please re-open it to try again.',
                             action: 'error_bot'
-                        });
+                        }, { status: 403 });
                     }
 
                     // Mark as active
