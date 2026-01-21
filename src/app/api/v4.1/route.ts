@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { verifyCaptcha, isRailwayDomain } from '@/utils/captcha';
+import { verifyCaptcha, verifyCustomCaptcha, isRailwayDomain } from '@/utils/captcha';
+import { verifyTurnstile } from '@/utils/turnstile';
+import { CAPTCHA_CONFIG } from '@/config/captcha';
 import { auth } from '@/auth';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
+import SuspiciousIP from '@/models/SuspiciousIP';
+import { getClientIp } from '@/utils/ip';
 
 export async function POST(request: NextRequest) {
     try {
@@ -57,10 +61,31 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Verify CAPTCHA (skip if testMode - strictly used for settings verification)
-        if (!testMode) {
-            const isCaptchaValid = await verifyCaptcha(captchaToken);
+        // SECURITY FIX: testMode only allowed in development OR for admin users
+        const isProduction = process.env.NODE_ENV === 'production';
+        const isAdmin = user.role === 'admin' || user.email === process.env.ADMIN_EMAIL;
+        const canSkipCaptcha = testMode && (!isProduction || isAdmin);
+
+        // Verify CAPTCHA (skip only if valid testMode conditions met)
+        if (!canSkipCaptcha) {
+            let isCaptchaValid = false;
+            const clientIp = getClientIp(request);
+
+            if (CAPTCHA_CONFIG.own === 1) {
+                isCaptchaValid = await verifyCustomCaptcha(captchaToken, clientIp);
+            } else if (CAPTCHA_CONFIG.own === 2) {
+                isCaptchaValid = await verifyTurnstile(captchaToken);
+            } else {
+                isCaptchaValid = await verifyCaptcha(captchaToken);
+            }
+
             if (!isCaptchaValid) {
+                // Log Suspicious IP
+                await SuspiciousIP.create({
+                    ipAddress: clientIp,
+                    reason: 'Captcha verification failed (V4.1 Redirect)'
+                });
+
                 return NextResponse.json(
                     { error: 'CAPTCHA verification failed. Please try again.' },
                     { status: 403 }

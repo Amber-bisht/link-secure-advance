@@ -7,9 +7,8 @@ export async function verifyCaptcha(token: string): Promise<boolean> {
         // IMPORTANT: Fail closed in production if secret is missing.
         // (Fail-open here becomes an instant bypass if env vars are misconfigured.)
         if (!secretKey) {
-            const isProd = process.env.NODE_ENV === 'production';
-            console.warn('⚠️  RECAPTCHA_SECRET_KEY not configured');
-            return !isProd; // allow only in non-production
+            console.error('❌ CRITICAL: RECAPTCHA_SECRET_KEY not configured. Failing closed.');
+            return false;
         }
 
         // Use the siteverify endpoint (works for both v2 and v3)
@@ -59,9 +58,8 @@ export async function verifyCustomCaptcha(token: string, remoteip?: string): Pro
 
         // IMPORTANT: Fail closed in production if secret is missing
         if (!secretKey) {
-            const isProd = process.env.NODE_ENV === 'production';
-            console.warn('⚠️  CUSTOM_CAPTCHA_SECRET_KEY not configured');
-            return !isProd; // allow only in non-production
+            console.error('❌ CRITICAL: CUSTOM_CAPTCHA_SECRET_KEY not configured. Failing closed.');
+            return false;
         }
 
         if (!token || typeof token !== 'string') {
