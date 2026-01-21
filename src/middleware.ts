@@ -60,15 +60,15 @@ export function middleware(request: NextRequest) {
     // =====================================================
     const response = NextResponse.next();
 
-    // Content Security Policy
+    // Content Security Policy - Allow Cloudflare and necessary resources
     response.headers.set(
         'Content-Security-Policy',
         "default-src 'self'; " +
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com https://challenges.cloudflare.com; " +
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
         "font-src 'self' https://fonts.gstatic.com; " +
         "img-src 'self' data: https: blob:; " +
-        "connect-src 'self' https://captcha-p.asprin.dev https://links.asprin.dev; " +
+        "connect-src 'self' https://captcha-p.asprin.dev https://links.asprin.dev https://cloudflareinsights.com https://*.cloudflare.com; " +
         "frame-ancestors 'none'; " +
         "base-uri 'self'; " +
         "form-action 'self';"
