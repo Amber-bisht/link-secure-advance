@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
         const userAgent = request.headers.get('user-agent') || '';
 
         // Generate challenge with rate limiting
-        const challenge = generateChallenge(ip);
+        const challenge = await generateChallenge(ip);
 
         if (!challenge) {
             return NextResponse.json(

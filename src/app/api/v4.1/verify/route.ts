@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
         const { verifyClientProof } = await import('@/utils/challenge');
         const ipForBind = getClientIp(request);
         const ua = request.headers.get('user-agent') || '';
-        const proofResult = verifyClientProof(challenge_id, clientProof, timing, entropy, counter, ipForBind, ua);
+        const proofResult = await verifyClientProof(challenge_id, clientProof, timing, entropy, counter, ipForBind, ua);
 
         if (!proofResult.valid) {
             return NextResponse.json(

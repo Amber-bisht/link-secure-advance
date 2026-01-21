@@ -1,30 +1,11 @@
 import crypto from 'crypto';
+import Challenge, { IChallenge } from '@/models/Challenge';
+import dbConnect from '@/lib/db';
 
 /**
  * Challenge-based API Security System
  * Implements server-issued challenges with HMAC-signed nonces and rotating secrets
  */
-
-interface Challenge {
-    challenge_id: string;
-    nonce: string;
-    difficulty: number; // number of leading hex '0' required
-    signature: string;
-    expiresAt: number;
-    createdAt: number;
-    ip: string;
-    uaHash: string;
-}
-
-interface ClientProof {
-    proof: string;
-    timing: number;
-    entropy: string;
-    counter: number;
-}
-
-// In-memory challenge store
-const challengeStore = new Map<string, Challenge>();
 
 // Rotating secret rotation interval (30 seconds)
 const ROTATION_INTERVAL = 30 * 1000;
@@ -82,7 +63,9 @@ function checkRateLimit(ip: string): boolean {
 /**
  * Generate a new challenge
  */
-export function generateChallenge(ip: string): Challenge | null {
+export async function generateChallenge(ip: string): Promise<IChallenge | null> {
+    await dbConnect();
+
     // Check rate limiting
     if (!checkRateLimit(ip)) {
         return null;
@@ -110,19 +93,16 @@ export function generateChallenge(ip: string): Challenge | null {
     // We intentionally do NOT ship any server secret to the client.
     const signature = hmacHex(challengeSecret, `${challenge_id}${nonce}${expiresAt}${difficulty}${ip}`);
 
-    // Store challenge
-    const challenge: Challenge = {
+    // Store challenge in MongoDB
+    const challenge = await Challenge.create({
         challenge_id,
         nonce,
         difficulty,
         signature,
         expiresAt,
-        createdAt: now,
         ip,
         uaHash: '' // filled by route (optional) or left blank
-    };
-
-    challengeStore.set(challenge_id, challenge);
+    });
 
     return challenge;
 }
@@ -130,8 +110,10 @@ export function generateChallenge(ip: string): Challenge | null {
 /**
  * Verify a challenge exists and is valid
  */
-export function verifyChallenge(challenge_id: string): { valid: boolean; error?: string; challenge?: Challenge } {
-    const challenge = challengeStore.get(challenge_id);
+export async function verifyChallenge(challenge_id: string): Promise<{ valid: boolean; error?: string; challenge?: IChallenge }> {
+    await dbConnect();
+
+    const challenge = await Challenge.findOne({ challenge_id });
 
     if (!challenge) {
         return { valid: false, error: 'Challenge not found or expired' };
@@ -139,7 +121,7 @@ export function verifyChallenge(challenge_id: string): { valid: boolean; error?:
 
     // Check expiration
     if (Date.now() > challenge.expiresAt) {
-        challengeStore.delete(challenge_id);
+        await Challenge.deleteOne({ challenge_id });
         return { valid: false, error: 'Challenge expired' };
     }
 
@@ -156,7 +138,7 @@ export function verifyChallenge(challenge_id: string): { valid: boolean; error?:
 
     // Constant-time comparison to prevent timing attacks
     if (!crypto.timingSafeEqual(Buffer.from(challenge.signature), Buffer.from(expectedSignature))) {
-        challengeStore.delete(challenge_id);
+        await Challenge.deleteOne({ challenge_id });
         return { valid: false, error: 'Invalid challenge signature' };
     }
 
@@ -168,7 +150,7 @@ export function verifyChallenge(challenge_id: string): { valid: boolean; error?:
  * Proof-of-work: sha256(challenge_id + nonce + timing + entropy + counter)
  * Must have `difficulty` leading hex '0' characters.
  */
-export function verifyClientProof(
+export async function verifyClientProof(
     challenge_id: string,
     proof: string,
     timing: number,
@@ -176,9 +158,11 @@ export function verifyClientProof(
     counter: number,
     ip?: string,
     userAgent?: string
-): { valid: boolean; error?: string } {
+): Promise<{ valid: boolean; error?: string }> {
+    await dbConnect();
+
     // Verify challenge first
-    const challengeResult = verifyChallenge(challenge_id);
+    const challengeResult = await verifyChallenge(challenge_id);
     if (!challengeResult.valid || !challengeResult.challenge) {
         return { valid: false, error: challengeResult.error };
     }
@@ -208,7 +192,7 @@ export function verifyClientProof(
 
     // BOT KILLER: Check if the challenge was solved too fast
     // Legitimate users take at least 1 second to load scripts, wait for UX, and compute proof.
-    const duration = now - challenge.createdAt;
+    const duration = now - new Date(challenge.createdAt).getTime();
     if (duration < 300) {
         return { valid: false, error: 'Bot detected (Submission too fast)' };
     }
@@ -239,21 +223,9 @@ export function verifyClientProof(
     }
 
     // One-time use: delete challenge after successful verification
-    challengeStore.delete(challenge_id);
+    await Challenge.deleteOne({ challenge_id });
 
     return { valid: true };
-}
-
-/**
- * Cleanup expired challenges (run periodically)
- */
-function cleanupExpiredChallenges() {
-    const now = Date.now();
-    for (const [challenge_id, challenge] of challengeStore.entries()) {
-        if (now > challenge.expiresAt) {
-            challengeStore.delete(challenge_id);
-        }
-    }
 }
 
 /**
@@ -273,13 +245,12 @@ function cleanupRateLimits() {
 
 // Run cleanup every 30 seconds
 setInterval(() => {
-    cleanupExpiredChallenges();
+    // Mongo handles challenge cleanup via TTL
     cleanupRateLimits();
 }, 30 * 1000);
 
 // Export for testing purposes
 export const _testing = {
-    challengeStore,
     rateLimitStore,
     ROTATION_INTERVAL,
     CHALLENGE_EXPIRATION,
