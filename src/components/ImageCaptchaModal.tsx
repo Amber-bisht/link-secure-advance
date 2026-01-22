@@ -5,6 +5,8 @@ import Image from "next/image";
 import { Loader2, RefreshCw, X, ShieldCheck, CheckCircle2, RotateCw, Type, Eye } from "lucide-react";
 import { solvePoW } from "@/utils/pow";
 
+// Base URL points to /api/image which nginx proxies to captcha-image server
+// Server routes are /api/*, nginx strips /api/image/ prefix
 const CAPTCHA_API_BASE = process.env.NEXT_PUBLIC_CUSTOM_CAPTCHA_API || "https://captcha-p.asprin.dev/api/image";
 
 interface CaptchaChallenge {
