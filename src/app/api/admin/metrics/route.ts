@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 
 // CAPTCHA server URL - should be configured in environment
-const CAPTCHA_METRICS_URL = process.env.CAPTCHA_API_URL || 'http://localhost:3001';
+const CAPTCHA_METRICS_URL = process.env.CAPTCHA_METRICS_URL || process.env.CAPTCHA_API_URL || 'http://localhost:3001';
 
 // GET: Fetch CAPTCHA metrics (Admin Only)
 export async function GET() {
