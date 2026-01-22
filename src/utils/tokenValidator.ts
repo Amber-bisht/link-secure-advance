@@ -140,7 +140,7 @@ export async function validateCaptchaToken(
         console.warn(`[TOKEN] IP mismatch: token bound to ${payload.ip}, request from ${requestIp}`);
         return {
             valid: false,
-            error: 'Token IP mismatch'
+            error: `Token IP mismatch: token bound to ${payload.ip}, request from ${requestIp}`
         };
     }
 
