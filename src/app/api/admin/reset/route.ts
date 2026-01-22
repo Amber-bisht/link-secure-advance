@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 
-// CAPTCHA server URL
-const CAPTCHA_API_URL = process.env.CAPTCHA_METRICS_URL || process.env.CAPTCHA_API_URL || 'http://localhost:3001';
+// CAPTCHA server base URL - strip /api/image suffix if present
+const rawUrl = process.env.CAPTCHA_METRICS_URL || process.env.CAPTCHA_API_URL || 'http://localhost:3001';
+const CAPTCHA_BASE_URL = rawUrl.replace(/\/api\/image\/?$/, '');
 
 // POST: Reset rate limits, unban devices, or reset metrics
 export async function POST(request: NextRequest) {
@@ -38,7 +39,10 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
         }
 
-        const response = await fetch(`${CAPTCHA_API_URL}${endpoint}`, {
+        const fullUrl = `${CAPTCHA_BASE_URL}${endpoint}`;
+        console.log(`[Admin Reset] Calling: ${fullUrl}`);
+
+        const response = await fetch(fullUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

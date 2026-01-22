@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 
-// CAPTCHA server URL - should be configured in environment
-const CAPTCHA_METRICS_URL = process.env.CAPTCHA_METRICS_URL || process.env.CAPTCHA_API_URL || 'http://localhost:3001';
+// CAPTCHA server URL - strip /api/image suffix if present
+const rawUrl = process.env.CAPTCHA_METRICS_URL || process.env.CAPTCHA_API_URL || 'http://localhost:3001';
+const CAPTCHA_BASE_URL = rawUrl.replace(/\/api\/image\/?$/, '');
 
 // GET: Fetch CAPTCHA metrics (Admin Only)
 export async function GET() {
@@ -21,7 +22,10 @@ export async function GET() {
             return NextResponse.json({ error: 'Server misconfiguration: Missing Admin Key' }, { status: 500 });
         }
 
-        const response = await fetch(`${CAPTCHA_METRICS_URL}/api/metrics`, {
+        const metricsUrl = `${CAPTCHA_BASE_URL}/api/metrics`;
+        console.log(`[Admin Metrics] Fetching from: ${metricsUrl}`);
+
+        const response = await fetch(metricsUrl, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -40,12 +44,45 @@ export async function GET() {
         }
 
         const metricsData = await response.json();
+        console.log('[Admin Metrics] Raw data from captcha server:', JSON.stringify(metricsData, null, 2));
 
-        return NextResponse.json({
+        // Get verifications data
+        const verifySuccess = metricsData.metrics?.verifications?.success || 0;
+        const verifyFail = metricsData.metrics?.verifications?.fail || 0;
+        const totalVerifications = verifySuccess + verifyFail;
+
+        // Transform the data to match frontend expectations
+        const transformedMetrics = {
             success: true,
             timestamp: new Date().toISOString(),
-            ...metricsData,
-        });
+            metrics: {
+                totals: {
+                    challenges: totalVerifications,
+                    verifications: totalVerifications,
+                    successRate: totalVerifications > 0
+                        ? Math.round((verifySuccess / totalVerifications) * 100)
+                        : 0,
+                },
+                byType: {
+                    spatial: { success: 0, fail: 0 },
+                    text: { success: verifySuccess, fail: verifyFail },
+                },
+                security: {
+                    bannedAttempts: metricsData.metrics?.security?.bannedAttempts || 0,
+                    honeypotTriggered: metricsData.metrics?.security?.honeypotTriggered || 0,
+                    fingerprintAnomalies: metricsData.metrics?.security?.fingerprintAnomalies || 0,
+                    uniqueDailyFingerprints: metricsData.metrics?.security?.uniqueDailyFingerprints || 0,
+                    replays: metricsData.metrics?.security?.replays || 0,
+                    timingAttacks: metricsData.metrics?.security?.timingAttacks || 0,
+                },
+                performance: {
+                    avgSolveTimeMs: metricsData.metrics?.performance?.avgSolveTimeMs || 0,
+                },
+            },
+            hourlyStats: metricsData.hourlyStats || [],
+        };
+
+        return NextResponse.json(transformedMetrics);
 
     } catch (error) {
         console.error('Admin Metrics Error:', error);
