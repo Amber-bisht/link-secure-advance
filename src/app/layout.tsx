@@ -35,7 +35,11 @@ export default function RootLayout({
           </Script>
 
           {/* Google Analytics */}
-          <Script src="https://www.googletagmanager.com/gtag/js?id=G-5C7HG612LQ" strategy="afterInteractive" />
+          <Script
+            src="https://www.googletagmanager.com/gtag/js?id=G-5C7HG612LQ"
+            strategy="afterInteractive"
+            referrerPolicy="strict-origin-when-cross-origin"
+          />
           <Script id="google-analytics" strategy="afterInteractive">
             {`
               window.dataLayer = window.dataLayer || [];
