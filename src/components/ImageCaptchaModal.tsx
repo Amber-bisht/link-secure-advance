@@ -174,6 +174,12 @@ export default function ImageCaptchaModal({
                                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTextAnswer(e.target.value)}
                                         onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && handleVerify()}
                                     />
+                                    <div className="flex items-center gap-2 px-1">
+                                        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded px-1.5 py-0.5 flex items-center gap-1.5">
+                                            <Type className="w-3 h-3 text-yellow-500" />
+                                            <span className="text-[10px] font-medium text-yellow-500 uppercase tracking-wide">Case Sensitivity</span>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
 

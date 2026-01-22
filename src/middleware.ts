@@ -24,17 +24,116 @@ const BOT_USER_AGENTS = [
     'playwright', 'selenium', 'nightmare',
 ];
 
+// =====================================================
+// Phase B: Request Timing & Pattern Analysis
+// =====================================================
+const requestTimestamps = new Map<string, number[]>();
+const suspiciousIPs = new Map<string, { count: number; lastSeen: number }>();
+
+// Cleanup interval (runs in edge runtime)
+const WINDOW_MS = 60000; // 1 minute window
+const MAX_REQUESTS_PER_WINDOW = 60;
+const SUSPICIOUS_THRESHOLD = 3;
+
+function getClientIP(request: NextRequest): string {
+    return request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+        request.headers.get('x-real-ip') ||
+        'unknown';
+}
+
+function analyzeRequestTiming(ip: string): { allowed: boolean; delay?: number } {
+    const now = Date.now();
+    const timestamps = requestTimestamps.get(ip) || [];
+
+    // Filter to recent window
+    const recent = timestamps.filter(t => now - t < WINDOW_MS);
+    recent.push(now);
+    requestTimestamps.set(ip, recent.slice(-100)); // Keep last 100
+
+    // Check rate
+    if (recent.length > MAX_REQUESTS_PER_WINDOW) {
+        return { allowed: false };
+    }
+
+    // Check for suspicious patterns (requests too fast/uniform)
+    if (recent.length >= 5) {
+        const intervals = [];
+        for (let i = 1; i < Math.min(recent.length, 10); i++) {
+            intervals.push(recent[i] - recent[i - 1]);
+        }
+
+        // If all intervals are very similar, it's likely automated
+        const avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+        const variance = intervals.reduce((sum, i) => sum + Math.pow(i - avgInterval, 2), 0) / intervals.length;
+
+        // Very low variance in timing = bot-like behavior
+        if (variance < 100 && avgInterval < 500) {
+            markSuspicious(ip);
+        }
+    }
+
+    return { allowed: true };
+}
+
+function markSuspicious(ip: string): void {
+    const existing = suspiciousIPs.get(ip) || { count: 0, lastSeen: 0 };
+    suspiciousIPs.set(ip, {
+        count: existing.count + 1,
+        lastSeen: Date.now(),
+    });
+}
+
+function isSuspicious(ip: string): boolean {
+    const record = suspiciousIPs.get(ip);
+    if (!record) return false;
+
+    // Decay suspicion over time
+    const hoursSinceLastSeen = (Date.now() - record.lastSeen) / 3600000;
+    if (hoursSinceLastSeen > 24) {
+        suspiciousIPs.delete(ip);
+        return false;
+    }
+
+    return record.count >= SUSPICIOUS_THRESHOLD;
+}
+
+// Detect suspicious header patterns
+function hasAnomalousHeaders(request: NextRequest): { suspicious: boolean; reason?: string } {
+    const userAgent = request.headers.get('user-agent') || '';
+    const acceptLang = request.headers.get('accept-language');
+    const acceptEnc = request.headers.get('accept-encoding');
+    const secChUa = request.headers.get('sec-ch-ua');
+
+    // Chrome should have sec-ch-ua header
+    if (userAgent.toLowerCase().includes('chrome') && !secChUa) {
+        return { suspicious: true, reason: 'Chrome UA without sec-ch-ua' };
+    }
+
+    // Missing accept-language is unusual for browsers
+    if (!acceptLang && !userAgent.includes('bot') && !userAgent.includes('crawler')) {
+        return { suspicious: true, reason: 'Missing accept-language' };
+    }
+
+    // Check for empty or minimal accept-encoding
+    if (!acceptEnc || acceptEnc === '*/*') {
+        return { suspicious: true, reason: 'Unusual accept-encoding' };
+    }
+
+    return { suspicious: false };
+}
+
 export function middleware(request: NextRequest) {
     const hostname = request.headers.get('host') || '';
     const userAgent = (request.headers.get('user-agent') || '').toLowerCase();
     const origin = request.headers.get('origin') || '';
+    const clientIP = getClientIP(request);
 
     // =====================================================
     // 1. BOT BLOCKING (before any other processing)
     // =====================================================
     const isBot = BOT_USER_AGENTS.some(pattern => userAgent.includes(pattern));
     if (isBot) {
-        console.warn(`[BLOCKED] Bot detected: ${userAgent.substring(0, 50)} from ${request.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown'}`);
+        console.warn(`[BLOCKED] Bot detected: ${userAgent.substring(0, 50)} from ${clientIP}`);
         return new NextResponse(
             JSON.stringify({ error: 'Access denied', code: 'BOT_DETECTED' }),
             {
@@ -42,6 +141,34 @@ export function middleware(request: NextRequest) {
                 headers: { 'Content-Type': 'application/json' }
             }
         );
+    }
+
+    // =====================================================
+    // Phase B: Request Timing Analysis
+    // =====================================================
+    const timingResult = analyzeRequestTiming(clientIP);
+    if (!timingResult.allowed) {
+        console.warn(`[RATE LIMIT] IP ${clientIP} exceeded request limit`);
+        return new NextResponse(
+            JSON.stringify({ error: 'Too many requests', code: 'RATE_LIMITED' }),
+            {
+                status: 429,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Retry-After': '60'
+                }
+            }
+        );
+    }
+
+    // =====================================================
+    // Phase B: Suspicious Header Pattern Detection
+    // =====================================================
+    const headerAnalysis = hasAnomalousHeaders(request);
+    if (headerAnalysis.suspicious && isSuspicious(clientIP)) {
+        console.warn(`[SUSPICIOUS] ${clientIP}: ${headerAnalysis.reason}`);
+        // Don't block, but add delay header for client-side use
+        // This information is logged and could be used for enhanced challenges
     }
 
     // =====================================================
@@ -109,11 +236,12 @@ export function middleware(request: NextRequest) {
             response.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
             response.headers.set(
                 'Access-Control-Allow-Headers',
-                'Content-Type, Authorization, X-Client-Proof, X-CSRF-Token'
+                'Content-Type, Authorization, X-Client-Proof, X-CSRF-Token, X-Session-Id'
             );
         } else {
             // Log unauthorized CORS attempts
             console.warn(`[CORS BLOCKED] Origin: ${origin} attempting to access ${request.url}`);
+            markSuspicious(clientIP);
             // Don't set CORS headers - browser will block the request
         }
     }

@@ -68,7 +68,7 @@ export async function verifyCustomCaptcha(token: string, remoteip?: string): Pro
         }
 
         // Call the siteverify endpoint (like Cloudflare/Google)
-        const response = await fetch(`${captchaApiUrl}/api/siteverify`, {
+        const response = await fetch(`${captchaApiUrl}/siteverify`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

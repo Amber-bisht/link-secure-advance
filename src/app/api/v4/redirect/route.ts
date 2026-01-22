@@ -7,6 +7,22 @@ import dbConnect from '@/lib/db';
 import SuspiciousIP from '@/models/SuspiciousIP';
 import { getClientIp } from '@/utils/ip';
 import { verifyRequestSignature } from '@/utils/requestIntegrity';
+// Phase B Security Enhancements
+import { validateCaptchaToken, generateRequestFingerprint, isTokenUsed } from '@/utils/tokenValidator';
+
+// Request deduplication for the entire request (not just token)
+const processedRequests = new Map<string, number>();
+const MAX_REQUEST_AGE_MS = 60000; // 1 minute
+
+// Cleanup old requests
+setInterval(() => {
+    const now = Date.now();
+    for (const [hash, timestamp] of processedRequests.entries()) {
+        if (now - timestamp > MAX_REQUEST_AGE_MS) {
+            processedRequests.delete(hash);
+        }
+    }
+}, 30000);
 
 export async function POST(request: NextRequest) {
     try {
@@ -33,6 +49,47 @@ export async function POST(request: NextRequest) {
 
         const body = await request.json();
         const { slug, captchaToken, challenge_id, timing, entropy, counter, _sig, _ts } = body;
+
+        // ===== Phase B: Request Timestamp Validation =====
+        // Ensure timing is recent (within 60s)
+        if (timing) {
+            const requestAge = Date.now() - timing;
+            if (requestAge > 60000) { // 60 seconds max age
+                console.log(`[SECURITY] Request too old: ${requestAge}ms`);
+                const ip = getClientIp(request);
+                await SuspiciousIP.create({
+                    ipAddress: ip,
+                    reason: `Stale request: ${Math.round(requestAge / 1000)}s old`
+                });
+                return NextResponse.json(
+                    { error: 'Request expired. Please refresh and try again.' },
+                    { status: 403 }
+                );
+            }
+            if (requestAge < -5000) { // 5s tolerance for clock skew
+                console.log(`[SECURITY] Request from future: ${requestAge}ms`);
+                return NextResponse.json(
+                    { error: 'Invalid request timing' },
+                    { status: 403 }
+                );
+            }
+        }
+
+        // ===== Phase B: Request Deduplication =====
+        // Create a hash of the unique request identifiers
+        const crypto = await import('crypto');
+        const requestHash = crypto.createHash('sha256')
+            .update(`${slug}:${challenge_id}:${captchaToken?.substring(0, 50)}`)
+            .digest('hex')
+            .substring(0, 32);
+
+        if (processedRequests.has(requestHash)) {
+            console.log(`[SECURITY] Duplicate request detected: ${requestHash.substring(0, 8)}`);
+            return NextResponse.json(
+                { error: 'Request already processed' },
+                { status: 409 }
+            );
+        }
 
         // ===== Security Layer 0: Request Integrity (if signature provided) =====
         // If client provides signature, verify request hasn't been tampered with
@@ -86,9 +143,44 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Verify CAPTCHA
-        let isCaptchaValid = false;
+        // ===== Phase B: Enhanced Token Validation =====
         const clientIp = getClientIp(request);
+
+        // Generate request fingerprint for binding verification
+        const requestFingerprint = generateRequestFingerprint(
+            Object.fromEntries(request.headers.entries()) as Record<string, string>
+        );
+
+        // Check if token already used (replay attack prevention)
+        const tokenUsageCheck = isTokenUsed(captchaToken);
+        if (tokenUsageCheck.used) {
+            console.log(`[SECURITY] Token replay attack from ${clientIp}, original IP: ${tokenUsageCheck.originalIp}`);
+            await SuspiciousIP.create({
+                ipAddress: clientIp,
+                reason: `Token replay attack (original: ${tokenUsageCheck.originalIp})`
+            });
+            return NextResponse.json(
+                { error: 'Token already used. Please complete a new CAPTCHA.' },
+                { status: 403 }
+            );
+        }
+
+        // Validate token with enhanced checks
+        const tokenValidation = await validateCaptchaToken(captchaToken, clientIp, requestFingerprint);
+        if (!tokenValidation.valid) {
+            console.log(`[SECURITY] Token validation failed: ${tokenValidation.error}`);
+            await SuspiciousIP.create({
+                ipAddress: clientIp,
+                reason: `Token validation failed: ${tokenValidation.error}`
+            });
+            return NextResponse.json(
+                { error: tokenValidation.error || 'Token validation failed' },
+                { status: 403 }
+            );
+        }
+
+        // Verify CAPTCHA (legacy verification - may be redundant with token validation)
+        let isCaptchaValid = false;
 
         if (CAPTCHA_CONFIG.own === 1) {
             isCaptchaValid = await verifyCustomCaptcha(captchaToken, clientIp);
@@ -111,6 +203,9 @@ export async function POST(request: NextRequest) {
                 { status: 403 }
             );
         }
+
+        // Mark request as processed (after all validations pass)
+        processedRequests.set(requestHash, Date.now());
 
         // Security Check: Too many recent failures?
         const ip = getClientIp(request);
