@@ -9,7 +9,10 @@ import {
     RefreshCw,
     TrendingUp,
     Clock,
-    BarChart3
+    BarChart3,
+    Trash2,
+    UserX,
+    RotateCcw
 } from "lucide-react";
 
 interface MetricsData {
@@ -51,6 +54,7 @@ export default function MetricsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+    const [resetting, setResetting] = useState<string | null>(null);
 
     const fetchMetrics = useCallback(async () => {
         setLoading(true);
@@ -73,6 +77,38 @@ export default function MetricsPage() {
         }
     }, []);
 
+    const handleReset = async (action: 'reset-rate-limits' | 'unban-all' | 'reset-metrics') => {
+        const confirmMessages = {
+            'reset-rate-limits': 'Are you sure you want to reset ALL rate limits? This will allow previously rate-limited IPs to make requests again.',
+            'unban-all': 'Are you sure you want to unban ALL devices? This will allow all banned users to access the service.',
+            'reset-metrics': 'Are you sure you want to reset ALL metrics? This will clear all historical data.',
+        };
+
+        if (!confirm(confirmMessages[action])) return;
+
+        setResetting(action);
+        try {
+            const res = await fetch("/api/admin/reset", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.error || `Failed to ${action}`);
+            }
+
+            alert(data.message || 'Operation completed successfully');
+            fetchMetrics(); // Refresh metrics after reset
+        } catch (err: any) {
+            alert(`Error: ${err.message}`);
+        } finally {
+            setResetting(null);
+        }
+    };
+
     useEffect(() => {
         if (session?.user) {
             fetchMetrics();
@@ -94,14 +130,43 @@ export default function MetricsPage() {
                             <p className="text-zinc-500">Real-time security monitoring dashboard</p>
                         </div>
                     </div>
-                    <button
-                        onClick={fetchMetrics}
-                        disabled={loading}
-                        className="flex items-center gap-2 px-4 py-2 bg-zinc-900 hover:bg-zinc-800 border border-white/10 rounded-xl text-sm text-zinc-300 transition-all disabled:opacity-50"
-                    >
-                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                        Refresh
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => handleReset('reset-rate-limits')}
+                            disabled={resetting !== null}
+                            className="flex items-center gap-2 px-3 py-2 bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/20 rounded-xl text-sm text-orange-400 transition-all disabled:opacity-50"
+                            title="Reset all rate limits"
+                        >
+                            <RotateCcw className={`w-4 h-4 ${resetting === 'reset-rate-limits' ? 'animate-spin' : ''}`} />
+                            <span className="hidden sm:inline">Rate Limits</span>
+                        </button>
+                        <button
+                            onClick={() => handleReset('unban-all')}
+                            disabled={resetting !== null}
+                            className="flex items-center gap-2 px-3 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-xl text-sm text-red-400 transition-all disabled:opacity-50"
+                            title="Unban all devices"
+                        >
+                            <UserX className={`w-4 h-4 ${resetting === 'unban-all' ? 'animate-spin' : ''}`} />
+                            <span className="hidden sm:inline">Unban All</span>
+                        </button>
+                        <button
+                            onClick={() => handleReset('reset-metrics')}
+                            disabled={resetting !== null}
+                            className="flex items-center gap-2 px-3 py-2 bg-zinc-500/10 hover:bg-zinc-500/20 border border-zinc-500/20 rounded-xl text-sm text-zinc-400 transition-all disabled:opacity-50"
+                            title="Reset all metrics"
+                        >
+                            <Trash2 className={`w-4 h-4 ${resetting === 'reset-metrics' ? 'animate-spin' : ''}`} />
+                            <span className="hidden sm:inline">Clear</span>
+                        </button>
+                        <button
+                            onClick={fetchMetrics}
+                            disabled={loading}
+                            className="flex items-center gap-2 px-4 py-2 bg-zinc-900 hover:bg-zinc-800 border border-white/10 rounded-xl text-sm text-zinc-300 transition-all disabled:opacity-50"
+                        >
+                            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                            Refresh
+                        </button>
+                    </div>
                 </div>
 
                 {lastRefresh && (
