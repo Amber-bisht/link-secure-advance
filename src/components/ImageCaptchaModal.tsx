@@ -58,11 +58,27 @@ export default function ImageCaptchaModal({
 
         try {
             // STEP 1: Get PoW Challenge
+            console.log('[CAPTCHA] Fetching init...');
             const initRes = await fetch(`${CAPTCHA_API_BASE}/api/init`);
-            const { nonce, difficulty } = await initRes.json();
 
-            // STEP 2: Solve PoW
+            if (!initRes.ok) {
+                throw new Error(`Init failed: ${initRes.status}`);
+            }
+
+            const initData = await initRes.json();
+            const { nonce, difficulty, algorithm } = initData;
+
+            console.log(`[CAPTCHA] Init received: algo=${algorithm || 'sha256'}, diff=${difficulty}`);
+
+            // Check if server returned scrypt (we don't support it)
+            if (algorithm === 'scrypt') {
+                throw new Error('Unsupported PoW algorithm: scrypt');
+            }
+
+            // STEP 2: Solve PoW (SHA-256 only)
+            console.log('[CAPTCHA] Solving PoW...');
             const solution = await solvePoW(nonce, difficulty);
+            console.log(`[CAPTCHA] PoW solved: ${solution}`);
 
             // STEP 3: Request Actual Challenge
             const response = await fetch(`${CAPTCHA_API_BASE}/api/request-challenge`, {
@@ -71,15 +87,25 @@ export default function ImageCaptchaModal({
                 body: JSON.stringify({ nonce, solution }),
             });
 
-            if (!response.ok) throw new Error("Security challenge failed");
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                const errMsg = errData.code === 'NONCE_EXPIRED'
+                    ? 'Challenge expired - please try again'
+                    : errData.code === 'POW_INVALID'
+                        ? `PoW verification failed (expected: ${errData.expected?.algorithm})`
+                        : errData.error || 'Security challenge failed';
+                throw new Error(errMsg);
+            }
 
             const data = await response.json();
+            console.log(`[CAPTCHA] Challenge received: type=${data.type}`);
             setChallenge(data);
             if (data.type === 'spatial') {
                 setCurrentFrame(data.startFrame || 0);
             }
             startTime.current = Date.now();
         } catch (err: any) {
+            console.error('[CAPTCHA] Error:', err);
             setError(err.message || "Failed to load captcha");
             onError(err.message || "Failed to load captcha");
         } finally {
