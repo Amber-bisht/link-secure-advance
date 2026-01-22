@@ -1,10 +1,9 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useSession } from "next-auth/react";
 import {
-    Shield,
     Link as LinkIcon,
     ArrowRight,
     Unlock,
@@ -15,17 +14,12 @@ import {
 } from "lucide-react";
 
 export default function UnshortenPage() {
-    const { data: session, status: authStatus } = useSession();
+    const { data: session } = useSession();
     const [url, setUrl] = useState("");
     const [result, setResult] = useState<{ originalUrl: string, version: string } | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [copied, setCopied] = useState(false);
-
-    useEffect(() => {
-        // Simple client-side auth redirection if needed, 
-        // usually middleware or layout handles protection but redundant check is fine
-    }, [authStatus, session]);
 
     const handleUnshorten = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -65,30 +59,8 @@ export default function UnshortenPage() {
         }
     };
 
-    if (authStatus === "loading") return null;
-
-    if (session?.user?.role !== 'admin') {
-        return (
-            <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 text-center">
-                <div className="w-16 h-16 bg-red-500/10 border border-red-500/20 rounded-full flex items-center justify-center mb-6">
-                    <Shield className="w-8 h-8 text-red-500" />
-                </div>
-                <h1 className="text-3xl font-bold text-white mb-2">Access Denied</h1>
-                <p className="text-zinc-500 max-w-md">
-                    This tool is restricted to administrators only.
-                </p>
-                <button
-                    onClick={() => window.location.href = "/"}
-                    className="mt-8 px-8 py-3 bg-zinc-900 hover:bg-zinc-800 text-white border border-white/10 rounded-xl transition-all"
-                >
-                    Back to Home
-                </button>
-            </div>
-        );
-    }
-
     return (
-        <div className="min-h-screen bg-[#050505] text-white p-6 md:p-12">
+        <div className="p-6 md:p-12">
             <div className="max-w-3xl mx-auto">
                 {/* Header */}
                 <div className="flex items-center gap-3 mb-8">

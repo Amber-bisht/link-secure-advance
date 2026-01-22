@@ -5,8 +5,6 @@ import { useSession } from "next-auth/react";
 import {
     Shield,
     Activity,
-    CheckCircle,
-    XCircle,
     AlertTriangle,
     RefreshCw,
     TrendingUp,
@@ -48,7 +46,7 @@ interface MetricsData {
 }
 
 export default function MetricsPage() {
-    const { data: session, status: authStatus } = useSession();
+    const { data: session } = useSession();
     const [metrics, setMetrics] = useState<MetricsData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -76,38 +74,15 @@ export default function MetricsPage() {
     }, []);
 
     useEffect(() => {
-        if (session?.user?.role === 'admin') {
+        if (session?.user) {
             fetchMetrics();
             const interval = setInterval(fetchMetrics, 30000);
             return () => clearInterval(interval);
         }
     }, [session, fetchMetrics]);
 
-    if (authStatus === "loading") return null;
-
-    // @ts-ignore
-    if (session?.user?.role !== 'admin') {
-        return (
-            <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 text-center">
-                <div className="w-16 h-16 bg-red-500/10 border border-red-500/20 rounded-full flex items-center justify-center mb-6">
-                    <Shield className="w-8 h-8 text-red-500" />
-                </div>
-                <h1 className="text-3xl font-bold text-white mb-2">Access Denied</h1>
-                <p className="text-zinc-500 max-w-md">
-                    This dashboard is restricted to administrators only.
-                </p>
-                <button
-                    onClick={() => window.location.href = "/"}
-                    className="mt-8 px-8 py-3 bg-zinc-900 hover:bg-zinc-800 text-white border border-white/10 rounded-xl transition-all"
-                >
-                    Back to Home
-                </button>
-            </div>
-        );
-    }
-
     return (
-        <div className="min-h-screen bg-[#050505] text-white p-6 md:p-12">
+        <div className="p-6 md:p-12">
             <div className="max-w-6xl mx-auto">
                 <div className="flex items-center justify-between mb-8">
                     <div className="flex items-center gap-3">

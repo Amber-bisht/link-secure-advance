@@ -1,27 +1,13 @@
 import { auth } from '@/auth';
 import { getCaptchaMetrics } from '@/lib/captcha-metrics';
-import { redirect } from 'next/navigation';
-import { Shield, Activity, Users, Clock, AlertTriangle } from 'lucide-react';
+import { Activity, Clock, Users, AlertTriangle } from 'lucide-react';
 
 export default async function AdminDashboard() {
     const session = await auth();
-
-    // "External host only admin role" check
-    // Assuming 'role' is populated as per auth.ts
-    if (!session?.user || (session.user as any).role !== 'admin') {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-screen bg-neutral-950 text-white">
-                <Shield className="w-16 h-16 text-red-500 mb-4" />
-                <h1 className="text-2xl font-bold">Access Denied</h1>
-                <p className="text-neutral-400">You do not have permission to view this page.</p>
-            </div>
-        );
-    }
-
     const data = await getCaptchaMetrics();
 
     return (
-        <div className="min-h-screen bg-neutral-950 text-white p-8">
+        <div className="p-6 md:p-12">
             <div className="max-w-6xl mx-auto space-y-8">
                 <header className="flex items-center justify-between">
                     <div>
@@ -44,9 +30,9 @@ export default async function AdminDashboard() {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                             <StatCard
                                 title="Total Verifications"
-                                value={data.metrics.verifications.success + data.metrics.verifications.fail}
+                                value={data.metrics.totals.verifications}
                                 icon={<Activity className="text-blue-400" />}
-                                subtext={`${data.metrics.verifications.success} success / ${data.metrics.verifications.fail} fail`}
+                                subtext={`${data.metrics.totals.successRate}% success rate`}
                             />
                             <StatCard
                                 title="Avg Solve Time"
@@ -64,26 +50,29 @@ export default async function AdminDashboard() {
                                 title="Security Events"
                                 value={data.metrics.security.replays + data.metrics.security.timingAttacks}
                                 icon={<AlertTriangle className="text-red-400" />}
-                                subtext={`${data.metrics.security.replays} replays / ${data.metrics.security.timingAttacks} timing`}
+                                subtext={`${data.metrics.security.honeypotTriggered} honeypots / ${data.metrics.security.bannedAttempts} banned`}
                             />
                         </div>
 
                         <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
-                            <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
+                            <h2 className="text-xl font-semibold mb-6 flex items-center gap-2 text-white">
                                 <Clock className="w-5 h-5 text-neutral-400" />
                                 Hourly Activity (Last 24h)
                             </h2>
 
                             <div className="h-64 flex items-end justify-between gap-2">
-                                {data.hourlyStats?.map((stat: any, i: number) => (
-                                    <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
-                                        <div className="w-full bg-neutral-800 rounded-t relative overflow-hidden group-hover:bg-neutral-700 transition-colors"
-                                            style={{ height: `${Math.max((stat.count / 100) * 100, 5)}%` }}>
-                                            <div className="absolute bottom-0 w-full bg-blue-500/50" style={{ height: `${(stat.success / stat.count) * 100}%` }}></div>
+                                {data.hourlyStats?.map((stat: any, i: number) => {
+                                    const total = stat.success + stat.fail;
+                                    return (
+                                        <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
+                                            <div className="w-full bg-neutral-800 rounded-t relative overflow-hidden group-hover:bg-neutral-700 transition-colors"
+                                                style={{ height: `${Math.max((total / 100) * 100, 5)}%` }}>
+                                                <div className="absolute bottom-0 w-full bg-blue-500/50" style={{ height: total > 0 ? `${(stat.success / total) * 100}%` : '0%' }}></div>
+                                            </div>
+                                            <span className="text-xs text-neutral-500">{new Date(stat.hour).getHours()}h</span>
                                         </div>
-                                        <span className="text-xs text-neutral-500">{new Date(stat.hour).getHours()}h</span>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                                 {(!data.hourlyStats || data.hourlyStats.length === 0) && (
                                     <div className="w-full h-full flex items-center justify-center text-neutral-500">
                                         No hourly data available
