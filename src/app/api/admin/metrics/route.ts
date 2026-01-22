@@ -15,10 +15,17 @@ export async function GET() {
         }
 
         // Fetch metrics from CAPTCHA server
+        const adminKey = process.env.CAPTCHA_ADMIN_KEY;
+        if (!adminKey) {
+            console.error('CAPTCHA_ADMIN_KEY not configured in Next.js');
+            return NextResponse.json({ error: 'Server misconfiguration: Missing Admin Key' }, { status: 500 });
+        }
+
         const response = await fetch(`${CAPTCHA_METRICS_URL}/api/metrics`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
+                'x-admin-key': adminKey
             },
             // Don't cache metrics - always fetch fresh
             cache: 'no-store',
