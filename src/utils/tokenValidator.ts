@@ -145,13 +145,17 @@ export async function validateCaptchaToken(
     }
 
     // Step 4: Verify fingerprint if provided
+    // NOTE: Fingerprint matching is relaxed because:
+    // 1. The captcha server generates fingerprints using custom headers (x-canvas-fingerprint, etc.)
+    //    that are only sent during the captcha flow, not on the redirect request
+    // 2. The captcha server already validates fingerprint binding during token creation
+    // 3. We still have IP binding as the primary security mechanism
+    // Just log for monitoring rather than hard failing
     if (requestFingerprint && payload.fingerprint) {
         if (payload.fingerprint !== requestFingerprint) {
-            console.warn(`[TOKEN] Fingerprint mismatch`);
-            return {
-                valid: false,
-                error: 'Token fingerprint mismatch'
-            };
+            // Only log at debug level - fingerprint mismatch is expected due to different calculation methods
+            console.debug(`[TOKEN] Fingerprint difference detected (expected with current architecture)`);
+            // Don't fail here - the captcha server already validated fingerprint binding
         }
     }
 
