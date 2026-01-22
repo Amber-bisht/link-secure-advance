@@ -64,11 +64,12 @@ export function middleware(request: NextRequest) {
     response.headers.set(
         'Content-Security-Policy',
         "default-src 'self'; " +
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com https://challenges.cloudflare.com; " +
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com https://challenges.cloudflare.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/; " +
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
         "font-src 'self' https://fonts.gstatic.com; " +
         "img-src 'self' data: https: blob:; " +
         "connect-src 'self' https://captcha-p.asprin.dev https://links.asprin.dev https://cloudflareinsights.com https://*.cloudflare.com; " +
+        "frame-src 'self' https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/; " +
         "frame-ancestors 'none'; " +
         "base-uri 'self'; " +
         "form-action 'self';"
