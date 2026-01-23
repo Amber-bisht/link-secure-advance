@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 
-const CAPTCHA_API_URL = process.env.CAPTCHA_API_URL;
-const CAPTCHA_ADMIN_KEY = process.env.CAPTCHA_ADMIN_KEY;
-
 export async function GET() {
     const session = await auth();
 
@@ -11,7 +8,14 @@ export async function GET() {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const CAPTCHA_API_URL = process.env.CAPTCHA_API_URL;
+    const CAPTCHA_ADMIN_KEY = process.env.CAPTCHA_ADMIN_KEY;
+
     if (!CAPTCHA_API_URL || !CAPTCHA_ADMIN_KEY) {
+        console.error('CAPTCHA configuration missing:', {
+            hasUrl: !!CAPTCHA_API_URL,
+            hasKey: !!CAPTCHA_ADMIN_KEY
+        });
         return NextResponse.json({ error: 'CAPTCHA API not configured' }, { status: 500 });
     }
 
@@ -43,7 +47,11 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const CAPTCHA_API_URL = process.env.CAPTCHA_API_URL;
+    const CAPTCHA_ADMIN_KEY = process.env.CAPTCHA_ADMIN_KEY;
+
     if (!CAPTCHA_API_URL || !CAPTCHA_ADMIN_KEY) {
+        console.error('CAPTCHA configuration missing in POST');
         return NextResponse.json({ error: 'CAPTCHA API not configured' }, { status: 500 });
     }
 
