@@ -165,18 +165,20 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Validate token with enhanced checks
-        const tokenValidation = await validateCaptchaToken(captchaToken, clientIp, requestFingerprint);
-        if (!tokenValidation.valid) {
-            console.log(`[SECURITY] Token validation failed: ${tokenValidation.error}`);
-            await SuspiciousIP.create({
-                ipAddress: clientIp,
-                reason: `Token validation failed: ${tokenValidation.error}`
-            });
-            return NextResponse.json(
-                { error: tokenValidation.error || 'Token validation failed' },
-                { status: 403 }
-            );
+        // Validate token with enhanced checks (Only for Own Captcha which uses JWT)
+        if (CAPTCHA_CONFIG.own === 1) {
+            const tokenValidation = await validateCaptchaToken(captchaToken, clientIp, requestFingerprint);
+            if (!tokenValidation.valid) {
+                console.log(`[SECURITY] Token validation failed: ${tokenValidation.error}`);
+                await SuspiciousIP.create({
+                    ipAddress: clientIp,
+                    reason: `Token validation failed: ${tokenValidation.error}`
+                });
+                return NextResponse.json(
+                    { error: tokenValidation.error || 'Token validation failed' },
+                    { status: 403 }
+                );
+            }
         }
 
         // Verify CAPTCHA (legacy verification - may be redundant with token validation)
