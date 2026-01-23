@@ -219,7 +219,7 @@ export async function POST(request: NextRequest) {
             createdAt: { $gt: new Date(Date.now() - 60 * 60 * 1000) } // Last 1 hour
         });
 
-        if (recentFailures >= 5) {
+        if (recentFailures >= 500) {
             return NextResponse.json(
                 { error: 'Too many failed attempts. Please try again later.' },
                 { status: 403 }
