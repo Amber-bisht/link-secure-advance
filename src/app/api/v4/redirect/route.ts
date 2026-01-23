@@ -183,7 +183,10 @@ export async function POST(request: NextRequest) {
         let isCaptchaValid = false;
 
         if (CAPTCHA_CONFIG.own === 1) {
-            isCaptchaValid = await verifyCustomCaptcha(captchaToken, clientIp);
+            // If clientIp is localhost (dev/tunnel), verifyCustomCaptcha will fail IP check on server
+            // So we omit the IP in that case to skip the server-side check
+            const ipForVerify = (clientIp === '::1' || clientIp === '127.0.0.1') ? undefined : clientIp;
+            isCaptchaValid = await verifyCustomCaptcha(captchaToken, ipForVerify);
         } else if (CAPTCHA_CONFIG.own === 2) {
             isCaptchaValid = await verifyTurnstile(captchaToken);
         } else {

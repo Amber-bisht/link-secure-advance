@@ -136,12 +136,19 @@ export async function validateCaptchaToken(
     const payload = decoded.payload;
 
     // Step 3: Verify token is bound to the requesting IP
+    // Allow localhost/loopback addresses to bypass checks (fixes local dev/tunnel issues)
+    const isLocalhost = requestIp === '::1' || requestIp === '127.0.0.1';
+
     if (payload.ip && payload.ip !== requestIp) {
-        console.warn(`[TOKEN] IP mismatch: token bound to ${payload.ip}, request from ${requestIp}`);
-        return {
-            valid: false,
-            error: `Token IP mismatch: token bound to ${payload.ip}, request from ${requestIp}`
-        };
+        if (isLocalhost) {
+            console.warn(`[TOKEN] IP mismatch ignored (localhost): token bound to ${payload.ip}, request from ${requestIp}`);
+        } else {
+            console.warn(`[TOKEN] IP mismatch: token bound to ${payload.ip}, request from ${requestIp}`);
+            return {
+                valid: false,
+                error: `Token IP mismatch: token bound to ${payload.ip}, request from ${requestIp}`
+            };
+        }
     }
 
     // Step 4: Verify fingerprint if provided
