@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { CAPTCHA_CONFIG } from '@/config/captcha';
+
 
 // =====================================================
 // SECURITY CONFIGURATION
@@ -122,7 +124,7 @@ function hasAnomalousHeaders(request: NextRequest): { suspicious: boolean; reaso
     return { suspicious: false };
 }
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
     const hostname = request.headers.get('host') || '';
     const userAgent = (request.headers.get('user-agent') || '').toLowerCase();
     const origin = request.headers.get('origin') || '';
@@ -144,8 +146,91 @@ export function middleware(request: NextRequest) {
     }
 
     // =====================================================
+    // 1.5. CLOUDFLARE BYPASS MITIGATION (Resource Trap & Honeypot)
+    // =====================================================
+    // Only active if using Cloudflare configuration (own === 2)
+    if (CAPTCHA_CONFIG.own === 2) {
+        // A. Honeypot Check (Poison Pill)
+        const botFlag = request.cookies.get('cf_bot_flag');
+        if (botFlag) {
+            console.warn(`[BLOCKED] Honeypot triggered by ${clientIP}`);
+            return new NextResponse(JSON.stringify({ error: 'Access Denied', code: 'BOT_HONEYPOT' }), {
+                status: 403,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+
+        // B. Resource Trap Verification (Proof of Image Load)
+        // Only enforce on the actual verification/redirect APIs
+        const path = request.nextUrl.pathname;
+        if (path === '/api/v4/redirect' || path === '/api/v4.1/visit') {
+            const proofCookie = request.cookies.get('cf_trap_proof');
+
+            if (!proofCookie) {
+                // No proof cookie = bypassed image load = bot
+                console.warn(`[BLOCKED] Missing resource proof from ${clientIP}`);
+                return new NextResponse(JSON.stringify({ error: 'Security verification failed (Resource missing)', code: 'RESOURCE_TRAP' }), {
+                    status: 403,
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            }
+
+            // Verify signature
+            const [timestampStr, sig] = proofCookie.value.split('.');
+            if (!timestampStr || !sig) {
+                return new NextResponse(JSON.stringify({ error: 'Invalid proof', code: 'INVALID_PROOF' }), { status: 403 });
+            }
+
+            const secret = process.env.CHALLENGE_SECRET || process.env.TOKEN_VALIDATION_SECRET || 'fallback-trap-secret';
+            const timestamp = parseInt(timestampStr);
+            const currentBucket = Math.floor(Date.now() / 3600000);
+
+            // Check if proof is expired (allow 2 hour window: current and previous hour)
+            if (currentBucket - timestamp > 1) {
+                return new NextResponse(JSON.stringify({ error: 'Proof expired', code: 'EXPIRED_PROOF' }), { status: 403 });
+            }
+
+            // Web Crypto API HMAC Verification
+            const encoder = new TextEncoder();
+            const secretKeyData = encoder.encode(secret);
+            const payload = `trap-proof:${clientIP}:${timestampStr}`;
+            const payloadData = encoder.encode(payload);
+
+            try {
+                const key = await crypto.subtle.importKey(
+                    'raw',
+                    secretKeyData,
+                    { name: 'HMAC', hash: 'SHA-256' },
+                    false,
+                    ['sign']
+                );
+
+                const signatureBuffer = await crypto.subtle.sign(
+                    'HMAC',
+                    key,
+                    payloadData
+                );
+
+                // Convert buffer to hex string
+                const expectedSig = Array.from(new Uint8Array(signatureBuffer))
+                    .map(b => b.toString(16).padStart(2, '0'))
+                    .join('');
+
+                if (sig !== expectedSig) {
+                    console.warn(`[BLOCKED] Invalid proof signature from ${clientIP}`);
+                    return new NextResponse(JSON.stringify({ error: 'Invalid proof signature', code: 'INVALID_SIG' }), { status: 403 });
+                }
+            } catch (e) {
+                console.error('Crypto error in middleware', e);
+                return new NextResponse(JSON.stringify({ error: 'Security validation error', code: 'CRYPTO_ERR' }), { status: 500 });
+            }
+        }
+    }
+
+    // =====================================================
     // Phase B: Request Timing Analysis
     // =====================================================
+
     const timingResult = analyzeRequestTiming(clientIP);
     if (!timingResult.allowed) {
         console.warn(`[RATE LIMIT] IP ${clientIP} exceeded request limit`);
@@ -191,12 +276,12 @@ export function middleware(request: NextRequest) {
     response.headers.set(
         'Content-Security-Policy',
         "default-src 'self'; " +
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com https://challenges.cloudflare.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/; " +
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com https://challenges.cloudflare.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.googletagmanager.com https://www.clarity.ms https://*.clarity.ms; " +
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
         "font-src 'self' https://fonts.gstatic.com; " +
-        "img-src 'self' data: https: blob:; " +
-        "connect-src 'self' https://captcha-p.asprin.dev https://links.asprin.dev https://cloudflareinsights.com https://*.cloudflare.com; " +
-        "frame-src 'self' https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/; " +
+        "img-src 'self' data: https: blob: https://www.googletagmanager.com; " +
+        "connect-src 'self' https://captcha-p.asprin.dev https://links.asprin.dev https://cloudflareinsights.com https://*.cloudflare.com https://www.google-analytics.com https://www.clarity.ms https://*.clarity.ms; " +
+        "frame-src 'self' https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/ https://challenges.cloudflare.com; " +
         "frame-ancestors 'none'; " +
         "base-uri 'self'; " +
         "form-action 'self';"
@@ -212,7 +297,7 @@ export function middleware(request: NextRequest) {
     response.headers.set('X-XSS-Protection', '1; mode=block');
 
     // Referrer Policy
-    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+    response.headers.set('Referrer-Policy', 'no-referrer-when-downgrade');
 
     // Permissions Policy (restrict features)
     response.headers.set(

@@ -1,9 +1,14 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
+/* eslint-disable @next/next/no-html-link-for-pages */
+
+
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ShieldCheck, AlertCircle, CheckCircle2, Loader2, ArrowRight } from "lucide-react";
 import Script from "next/script";
+import { CAPTCHA_CONFIG } from "@/config/captcha";
 import { fetchChallenge, prepareChallengeData, type Challenge } from "@/utils/clientChallenge";
 import { initAntiInspect } from "@/utils/antiDebugging";
 
@@ -26,6 +31,9 @@ export default function V41RedirectPage() {
 
     // Turnstile ref
     const turnstileContainerRef = useRef<HTMLDivElement>(null);
+
+    // Trap Loading State
+    const [trapLoaded, setTrapLoaded] = useState(false);
 
     useEffect(() => {
         initAntiInspect();
@@ -123,6 +131,15 @@ export default function V41RedirectPage() {
             const challengeData = await prepareChallengeData(currentChallenge);
             if (!challengeData) {
                 throw new Error('Failed to prepare security challenge');
+            }
+
+            // Ensure Resource Trap is loaded (for Cloudflare mode)
+            if (CAPTCHA_CONFIG.own === 2 && !trapLoaded) {
+                // Wait for trap to load (max 3s)
+                for (let i = 0; i < 30; i++) {
+                    if (trapLoaded) break;
+                    await new Promise(r => setTimeout(r, 100));
+                }
             }
 
             const res = await fetch('/api/v4.1/visit', {
@@ -231,6 +248,7 @@ export default function V41RedirectPage() {
                 src="https://challenges.cloudflare.com/turnstile/v0/api.js"
                 onLoad={handleScriptLoad}
                 strategy="afterInteractive"
+                referrerPolicy="strict-origin-when-cross-origin"
             />
 
             <div className="max-w-md w-full p-8 bg-zinc-900/50 backdrop-blur-xl rounded-2xl shadow-2xl border border-zinc-800/50 relative overflow-hidden">
@@ -252,6 +270,33 @@ export default function V41RedirectPage() {
 
                 {/* Turnstile Container (Invisible) */}
                 <div ref={turnstileContainerRef} className="fixed bottom-4 right-4 opacity-0 pointer-events-none" />
+
+                {/* Resource Trap & Honeypot (Cloudflare Mode Only) */}
+                {CAPTCHA_CONFIG.own === 2 && (
+                    <>
+                        {/* Resource Trap: Loads a 1x1 image to set a proof cookie. */}
+                        <img
+                            src="/api/trap/image"
+                            alt=""
+                            className="absolute opacity-0 w-px h-px pointer-events-none"
+                            aria-hidden="true"
+                            onLoad={() => setTrapLoaded(true)}
+                            onError={() => setTrapLoaded(true)}
+                        />
+
+                        {/* Honeypot: Hidden link for bots to click. */}
+                        <a
+                            href="/api/trap/bot"
+                            className="absolute opacity-0 w-px h-px pointer-events-none top-0 left-0 overflow-hidden"
+                            tabIndex={-1}
+                            aria-hidden="true"
+                            rel="nofollow"
+                        >
+                            Skip Verification
+                        </a>
+                    </>
+                )}
+
 
                 <div className="relative z-10 space-y-1">
                     {status === 'error' ? (

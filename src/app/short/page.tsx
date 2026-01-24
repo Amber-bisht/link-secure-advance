@@ -492,7 +492,7 @@ export default function ShortPage() {
                                                 <div className="grid grid-cols-2 gap-3">
                                                     {[
                                                         { id: 'v4', label: 'v4 Captcha', sub: 'Human Verification' },
-                                                        { id: 'v4.1', label: 'v4.1 LinkShortify', sub: 'Session Protected' }
+                                                        // { id: 'v4.1', label: 'v4.1 LinkShortify', sub: 'Session Protected' }
                                                     ].map((opt) => (
                                                         <button
                                                             key={opt.id}

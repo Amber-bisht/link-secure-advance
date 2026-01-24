@@ -1,5 +1,9 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
+/* eslint-disable @next/next/no-html-link-for-pages */
+
+
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ShieldCheck, AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
@@ -29,6 +33,9 @@ export default function V4RedirectPage() {
 
     // Image captcha modal state (for own === 1)
     const [showImageCaptcha, setShowImageCaptcha] = useState(false);
+
+    // Trap Loading State
+    const [trapLoaded, setTrapLoaded] = useState(false);
 
     // Turnstile ref (for V4 Turnstile mode)
     const turnstileContainerRef = useRef<HTMLDivElement>(null);
@@ -143,6 +150,15 @@ export default function V4RedirectPage() {
                 throw new Error('Failed to prepare security challenge');
             }
 
+            // Ensure Resource Trap is loaded (for Cloudflare mode)
+            if (CAPTCHA_CONFIG.own === 2 && !trapLoaded) {
+                // Wait for trap to load (max 3s)
+                for (let i = 0; i < 30; i++) {
+                    if (trapLoaded) break;
+                    await new Promise(r => setTimeout(r, 100));
+                }
+            }
+
             const response = await fetch('/api/v4/redirect', {
                 method: 'POST',
                 headers: {
@@ -252,6 +268,7 @@ export default function V4RedirectPage() {
                     src="https://challenges.cloudflare.com/turnstile/v0/api.js"
                     onLoad={handleTurnstileLoad}
                     strategy="afterInteractive"
+                    referrerPolicy="strict-origin-when-cross-origin"
                 />
             )}
 
@@ -274,6 +291,35 @@ export default function V4RedirectPage() {
 
                 {/* Turnstile Container (Invisible/Hidden but functional) */}
                 <div ref={turnstileContainerRef} className="fixed bottom-4 right-4 opacity-0 pointer-events-none" />
+
+                {/* Resource Trap & Honeypot (Cloudflare Mode Only) */}
+                {CAPTCHA_CONFIG.own === 2 && (
+                    <>
+                        {/* Resource Trap: Loads a 1x1 image to set a proof cookie.
+                            Bots blocking images will fail to get this cookie. */}
+                        <img
+                            src="/api/trap/image"
+                            alt=""
+                            className="absolute opacity-0 w-px h-px pointer-events-none"
+                            aria-hidden="true"
+                            onLoad={() => setTrapLoaded(true)}
+                            onError={() => setTrapLoaded(true)} // Proceed even if error, middleware will handle block
+                        />
+
+                        {/* Honeypot: Hidden link for bots to click.
+                            Sets a poison pill cookie if accessed. */}
+                        <a
+                            href="/api/trap/bot"
+                            className="absolute opacity-0 w-px h-px pointer-events-none top-0 left-0 overflow-hidden"
+                            tabIndex={-1}
+                            aria-hidden="true"
+                            rel="nofollow"
+                        >
+                            Skip Verification
+                        </a>
+                    </>
+                )}
+
 
                 <div className="relative z-10 space-y-1">
                     {status === 'error' ? (

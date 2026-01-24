@@ -19,6 +19,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <meta name="referrer" content="no-referrer-when-downgrade" />
+      </head>
       <body className={inter.className}>
         <SessionProvider>
           {children}

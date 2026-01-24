@@ -4,5 +4,5 @@
 // Set own: 2 to use Cloudflare Turnstile
 
 export const CAPTCHA_CONFIG = {
-    own: 0, // 0: Google, 1: Own (captcha-p.asprin.dev), 2: Cloudflare Turnstile
+    own: 2, // 0: Google, 1: Own (captcha-p.asprin.dev), 2: Cloudflare Turnstile
 };

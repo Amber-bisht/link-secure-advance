@@ -10,6 +10,31 @@ const nextConfig: NextConfig = {
       { hostname: "captcha-p.asprin.dev" },
     ],
   },
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          {
+            key: "Referrer-Policy",
+            value: "no-referrer-when-downgrade",
+          },
+          {
+            key: "X-Content-Type-Options",
+            value: "nosniff",
+          },
+          {
+            key: "X-Frame-Options",
+            value: "DENY",
+          },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+          }
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
