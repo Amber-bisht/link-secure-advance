@@ -6,6 +6,7 @@ export interface IUser extends Document {
     image?: string;
     role: 'user' | 'admin';
     validUntil: Date;
+    howmanycreatedlinks: number;
     linkShortifyKey?: string;
     aroLinksKey?: string;
     vpLinkKey?: string;
@@ -20,6 +21,7 @@ const UserSchema: Schema = new Schema({
     emailVerified: Date,
     role: { type: String, enum: ['user', 'admin'], default: 'user' },
     validUntil: { type: Date }, // Will be set on creation via Auth events
+    howmanycreatedlinks: { type: Number, default: 0 },
     linkShortifyKey: String,
     aroLinksKey: String,
     vpLinkKey: String,

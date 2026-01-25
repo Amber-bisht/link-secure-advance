@@ -1,19 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { encodeLinkV4 } from '@/utils/linkWrapper';
-import { verifyCaptcha, isRailwayDomain } from '@/utils/captcha';
+
 import { auth } from '@/auth';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
 
 export async function POST(request: NextRequest) {
     try {
-        // Block Railway domains
-        if (isRailwayDomain(request)) {
-            return NextResponse.json(
-                { error: 'Access denied from this domain' },
-                { status: 403 }
-            );
-        }
+
 
         const session = await auth();
         if (!session?.user?.email) {
@@ -38,24 +32,17 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { url, captchaToken } = body;
+        const { url } = body;
 
         // Validate inputs
-        if (!url || !captchaToken) {
+        if (!url) {
             return NextResponse.json(
-                { error: 'URL and CAPTCHA token are required' },
+                { error: 'URL is required' },
                 { status: 400 }
             );
         }
 
-        // Verify CAPTCHA
-        const isCaptchaValid = await verifyCaptcha(captchaToken);
-        if (!isCaptchaValid) {
-            return NextResponse.json(
-                { error: 'CAPTCHA verification failed. Please try again.' },
-                { status: 403 }
-            );
-        }
+        // (Captcha removed for channel owner)
 
         // Validate URL format
         let targetUrl = url;
@@ -76,6 +63,10 @@ export async function POST(request: NextRequest) {
         // Return the generated link
         const origin = request.headers.get('origin') || '';
         const generatedLink = `${origin}/v4/${slug}`;
+
+        // Increment usage count
+        user.howmanycreatedlinks = (user.howmanycreatedlinks || 0) + 1;
+        await user.save();
 
         return NextResponse.json({
             success: true,

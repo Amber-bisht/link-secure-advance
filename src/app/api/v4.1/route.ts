@@ -1,151 +1,141 @@
-import { NextRequest, NextResponse } from 'next/server';
-import crypto from 'crypto';
-import { verifyCaptcha, verifyCustomCaptcha, isRailwayDomain } from '@/utils/captcha';
-import { verifyTurnstile } from '@/utils/turnstile';
-import { CAPTCHA_CONFIG } from '@/config/captcha';
-import { auth } from '@/auth';
-import dbConnect from '@/lib/db';
-import User from '@/models/User';
-import SuspiciousIP from '@/models/SuspiciousIP';
-import { getClientIp } from '@/utils/ip';
+import { auth } from "@/auth";
+import V41Link from "@/models/V41Link";
+import User from "@/models/User";
+import mongoose from "mongoose";
+import { NextResponse } from "next/server";
 
-export async function POST(request: NextRequest) {
+export async function POST(req: Request) {
     try {
-        // Block Railway domains
-        if (isRailwayDomain(request)) {
-            return NextResponse.json(
-                { error: 'Access denied from this domain' },
-                { status: 403 }
-            );
-        }
-
         const session = await auth();
-        // @ts-ignore
-        if (!session?.user?.email) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        if (!session || !session.user || !session.user.email) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        await dbConnect();
+        const { url, slug } = await req.json();
 
-        // Check Validity via DB to get latest status and API Key
+        if (!url) {
+            return NextResponse.json({ error: "URL is required" }, { status: 400 });
+        }
+
+        if (!slug) {
+            return NextResponse.json({ error: "Slug is required" }, { status: 400 });
+        }
+
+        // Connect to DB
+        await mongoose.connect(process.env.MONGODB_URI as string);
+
+        // Fetch User Keys
         const user = await User.findOne({ email: session.user.email });
-
         if (!user) {
-            return NextResponse.json({ error: 'User not found' }, { status: 404 });
+            return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
-        const now = new Date();
-        if (!user.validUntil || new Date(user.validUntil) < now) {
-            return NextResponse.json({
-                error: 'Subscription Expired. Please contact admin to renew.',
-                code: 'EXPIRED'
-            }, { status: 403 });
+        // Check if at least one key exists (or enforce strictness based on requirements)
+        // Flow says: "only if key exist - at least 1 key"
+        if (!user.linkShortifyKey && !user.aroLinksKey && !user.vpLinkKey && !user.inShortUrlKey) {
+            return NextResponse.json({ error: "No API keys found. Please add keys in Settings first." }, { status: 400 });
         }
 
-        // Check for LinkShortify API Key
-        if (!user.linkShortifyKey) {
-            return NextResponse.json({
-                error: 'LinkShortify API Key missing.',
-                code: 'KEY_MISSING'
-            }, { status: 400 });
+        // Check availability
+        const existing = await V41Link.findOne({ slug });
+        if (existing) {
+            return NextResponse.json({ error: "Slug already exists" }, { status: 400 });
         }
 
-        const body = await request.json();
-        const { url, captchaToken, testMode } = body; // testMode for key verification
+        // Parallel API Calls
+        const promises = [];
 
-        // Validate inputs
-        if (!url || (!captchaToken && !testMode)) {
-            return NextResponse.json(
-                { error: 'URL and CAPTCHA token are required' },
-                { status: 400 }
-            );
-        }
+        // Helper to fetch
+        const shorten = async (serviceName: string, apiUrl: string): Promise<string | null> => {
+            try {
+                // Replace placeholders
+                // URL Format from flow.md:
+                // LinkShortify: https://linkshortify.com/api?api=${key}&url=${url}&format=text
+                // AroLinks: https://arolinks.com/api?api=${key}&url=${url}&alias=TestAlias&format=text (Alias ignored for now as we want random or auto from them?)
+                // Actually flow says: alias=TestAlias. But we can't reuse same alias on their system probably? 
+                // Let's drop alias param for safety or use our slug if they support it? 
+                // Flow examples show alias=TestAlias for Aro, VP, InShort. Ideally we shouldn't force alias unless user wants.
+                // Let's try WITHOUT alias first to avoid conflicts on their end, or use simple format.
 
-        // SECURITY FIX: testMode only allowed in development OR for admin users
-        const isProduction = process.env.NODE_ENV === 'production';
-        const isAdmin = user.role === 'admin' || user.email === process.env.ADMIN_EMAIL;
-        const canSkipCaptcha = testMode && (!isProduction || isAdmin);
-
-        // Verify CAPTCHA (skip only if valid testMode conditions met)
-        if (!canSkipCaptcha) {
-            let isCaptchaValid = false;
-            const clientIp = getClientIp(request);
-
-            if (CAPTCHA_CONFIG.own === 1) {
-                isCaptchaValid = await verifyCustomCaptcha(captchaToken, clientIp);
-            } else if (CAPTCHA_CONFIG.own === 2) {
-                isCaptchaValid = await verifyTurnstile(captchaToken);
-            } else {
-                isCaptchaValid = await verifyCaptcha(captchaToken);
+                const res = await fetch(apiUrl);
+                if (!res.ok) return null;
+                const text = await res.text();
+                if (text.startsWith("http")) return text.trim();
+                return null;
+            } catch (e) {
+                console.error(`Failed to shorten with ${serviceName}`, e);
+                return null;
             }
+        };
 
-            if (!isCaptchaValid) {
-                // Log Suspicious IP
-                await SuspiciousIP.create({
-                    ipAddress: clientIp,
-                    reason: 'Captcha verification failed (V4.1 Redirect)'
-                });
+        let linkShortifyUrl = "";
+        let aroLinksUrl = "";
+        let vpLinkUrl = "";
+        let inShortUrlUrl = "";
 
-                return NextResponse.json(
-                    { error: 'CAPTCHA verification failed. Please try again.' },
-                    { status: 403 }
-                );
-            }
+        // 1. LinkShortify
+        if (user.linkShortifyKey) {
+            promises.push(shorten('LinkShortify', `https://linkshortify.com/api?api=${user.linkShortifyKey}&url=${encodeURIComponent(url)}&format=text`)
+                .then(res => { if (res) linkShortifyUrl = res; }));
         }
 
-        // Validate URL format
-        let targetUrl = url;
-        if (!/^https?:\/\//i.test(targetUrl)) {
-            targetUrl = 'https://' + targetUrl;
+        // 2. AroLinks
+        if (user.aroLinksKey) {
+            promises.push(shorten('AroLinks', `https://arolinks.com/api?api=${user.aroLinksKey}&url=${encodeURIComponent(url)}&format=text`) // Removed alias to let it generate unique
+                .then(res => { if (res) aroLinksUrl = res; }));
         }
 
-        // STRICT Validation: Only allow t.me links (or strictly no other shorteners)
-        // For now, we prefer direct links. user requested "t.me/url link no link shorter allowed"
-        const domain = new URL(targetUrl).hostname.replace('www.', '');
-        const allowedDomains = ['t.me', 'telegram.me'];
-        const blockedDomains = ['bit.ly', 'tinyurl.com', 'goo.gl', 'ow.ly', 'lksfy.com', 'linkshortify.com'];
-
-        if (blockedDomains.some(d => domain.includes(d))) {
-            return NextResponse.json(
-                { error: 'Double shortening is not allowed. Please use the direct destination URL (e.g., t.me/...)' },
-                { status: 400 }
-            );
+        // 3. VPLink
+        if (user.vpLinkKey) {
+            promises.push(shorten('VPLink', `https://vplink.in/api?api=${user.vpLinkKey}&url=${encodeURIComponent(url)}&format=text`)
+                .then(res => { if (res) vpLinkUrl = res; }));
         }
 
-        // Generate V4.1 Persistent Link
-        // We use a custom slug or random one, but persist it in Link collection
-        // This is the "Public URL" the owner shares
+        // 4. InShortUrl
+        if (user.inShortUrlKey) {
+            promises.push(shorten('InShortUrl', `https://inshorturl.com/api?api=${user.inShortUrlKey}&url=${encodeURIComponent(url)}&format=text`)
+                .then(res => { if (res) inShortUrlUrl = res; }));
+        }
 
-        const Link = (await import('@/models/Link')).default;
+        await Promise.all(promises);
 
-        // Check if user already has a link for this target? (Optional, skipping for now to allow multiple)
+        // Fallback or Error if ALL failed despite having keys?
+        // "if not exist show error" - well we showed error if keys missing.
+        // If keys exist but API fails, we might still want to proceed if at least ONE succeeded?
+        // Let's proceed if we have at least one URL, or maybe just save what we have.
 
-        // Generate a random slug for the persistent link
-        const slug = crypto.randomBytes(4).toString('hex'); // 8 chars
+        // Construct legacy urls array for compatibility/ordering
+        // Order: LinkShortify, AroLinks, VPLink, InShortUrl
+        const urlsList = [];
+        if (linkShortifyUrl) urlsList.push(linkShortifyUrl);
+        if (aroLinksUrl) urlsList.push(aroLinksUrl);
+        if (vpLinkUrl) urlsList.push(vpLinkUrl);
+        if (inShortUrlUrl) urlsList.push(inShortUrlUrl);
 
-        await Link.create({
-            slug: slug,
-            targetUrl: targetUrl,
-            ownerId: user._id,
+        if (urlsList.length === 0) {
+            return NextResponse.json({ error: "Failed to generate any short links. Please check your API keys or try again." }, { status: 500 });
+        }
+
+        const newLink = await V41Link.create({
+            slug,
+            originalUrl: url,
+            linkShortifyUrl,
+            aroLinksUrl,
+            vpLinkUrl,
+            inShortUrlUrl,
+            urls: urlsList,
+            ownerId: session.user.id,
         });
 
-        // Return the persistent link
-        const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'https://links.asprin.dev';
-        const generatedLink = `${origin}/v4.1/${slug}`;
-
-        return NextResponse.json({
-            success: true,
-            link: generatedLink,
-            slug: slug,
-            version: '4.1'
-        });
-
-    } catch (error) {
-        console.error('V4.1 API error:', error);
-        return NextResponse.json(
-            { error: 'Internal server error' },
-            { status: 500 }
+        // Increment usage count
+        await User.updateOne(
+            { email: session.user.email },
+            { $inc: { howmanycreatedlinks: 1 } }
         );
+
+        return NextResponse.json({ success: true, link: newLink }, { status: 201 });
+    } catch (error) {
+        console.error("Error creating v4.1 link:", error);
+        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }
-

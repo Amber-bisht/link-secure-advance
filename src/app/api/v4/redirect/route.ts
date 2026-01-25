@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { decodeLinkV4 } from '@/utils/linkWrapper';
-import { verifyCaptcha, verifyCustomCaptcha } from '@/utils/captcha';
+import { verifyCustomCaptcha } from '@/utils/captcha';
 import { verifyTurnstile } from '@/utils/turnstile';
 import { CAPTCHA_CONFIG } from '@/config/captcha';
 import dbConnect from '@/lib/db';
@@ -192,7 +192,7 @@ export async function POST(request: NextRequest) {
         } else if (CAPTCHA_CONFIG.own === 2) {
             isCaptchaValid = await verifyTurnstile(captchaToken);
         } else {
-            isCaptchaValid = await verifyCaptcha(captchaToken);
+            isCaptchaValid = await verifyTurnstile(captchaToken);
         }
 
         if (!isCaptchaValid) {
