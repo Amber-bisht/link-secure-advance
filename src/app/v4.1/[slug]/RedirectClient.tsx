@@ -313,8 +313,10 @@ export default function RedirectClient({ slug, urls }: RedirectClientProps) {
                     <p className="text-sm text-zinc-400">Please wait while we secure your connection.</p>
                 </div>
 
-                {/* Turnstile Container (Invisible/Hidden but functional) */}
-                <div ref={turnstileContainerRef} className="fixed bottom-4 right-4 opacity-0 pointer-events-none" />
+                {/* Turnstile Container (Visible for Interaction) */}
+                <div className="flex justify-center mb-6 min-h-[65px]">
+                    <div ref={turnstileContainerRef} />
+                </div>
 
                 {/* Resource Trap & Honeypot (Cloudflare Mode Only) */}
                 {CAPTCHA_CONFIG.own === 2 && (
