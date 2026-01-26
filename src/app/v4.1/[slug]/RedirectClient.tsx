@@ -177,7 +177,6 @@ export default function RedirectClient({ slug, urls }: RedirectClientProps) {
             }
 
             // Ensure Resource Trap is loaded (for Cloudflare mode)
-            // Ensure Resource Trap is loaded (for Cloudflare mode)
             if (CAPTCHA_CONFIG.own === 2) {
                 if (!trapLoadedRef.current) {
                     // Wait for trap to load (max 3s)
@@ -212,6 +211,13 @@ export default function RedirectClient({ slug, urls }: RedirectClientProps) {
             if (!res.ok) {
                 if (data.error) throw new Error(data.error);
                 throw new Error("Verification failed");
+            }
+
+            if (!data.url || !data.url.startsWith('http')) {
+                console.error('[DEBUG] Invalid redirect URL received:', data.url);
+                setError('Invalid destination URL received');
+                setStatus('error');
+                return;
             }
 
             // Step 4: Redirect
