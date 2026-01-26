@@ -25,7 +25,6 @@ export async function GET(request: NextRequest) {
     const timestamp = Math.floor(Date.now() / 3600000); // Hourly bucket
 
     // Payload: trap-proof:{nonce}:{timestamp}
-    console.log(`[DEBUG] Generating trap token for nonce: ${nonce}`);
     const payload = `trap-proof:${nonce}:${timestamp}`;
     const signature = sign(payload);
 

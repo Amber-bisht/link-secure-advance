@@ -177,7 +177,6 @@ export async function middleware(request: NextRequest) {
 
             // Verify signature
             const parts = proofCookie.value.split('.');
-            console.log(`[DEBUG_MW] Trap Cookie Found: ${proofCookie.value.substring(0, 20)}...`);
 
             let nonce = '';
             let timestampStr = '';
@@ -186,13 +185,10 @@ export async function middleware(request: NextRequest) {
             if (parts.length === 3) {
                 [nonce, timestampStr, sig] = parts;
             } else {
-                console.warn(`[DEBUG_MW] Invalid cookie format: ${proofCookie.value}`);
-                // Invalid format (likely old cookie or tampered)
                 return new NextResponse(JSON.stringify({ error: 'Invalid proof format', code: 'INVALID_PROOF_FMT' }), { status: 403 });
             }
 
             if (!nonce || !timestampStr || !sig) {
-                console.warn('[DEBUG_MW] Missing parts in cookie');
                 return new NextResponse(JSON.stringify({ error: 'Invalid proof', code: 'INVALID_PROOF' }), { status: 403 });
             }
 
@@ -202,7 +198,6 @@ export async function middleware(request: NextRequest) {
 
             // Check if proof is expired (allow 2 hour window: current and previous hour)
             if (currentBucket - timestamp > 1) {
-                console.warn(`[DEBUG_MW] Proof expired. Timestamp: ${timestamp}, CurrentBucket: ${currentBucket}`);
                 return new NextResponse(JSON.stringify({ error: 'Proof expired', code: 'EXPIRED_PROOF' }), { status: 403 });
             }
 
@@ -210,7 +205,6 @@ export async function middleware(request: NextRequest) {
             const encoder = new TextEncoder();
             const secretKeyData = encoder.encode(secret);
             const payload = `trap-proof:${nonce}:${timestampStr}`;
-            // console.log(`[DEBUG_MW] Verifying Payload: ${payload}`); // Careful with logging nonces if sensitive contexts, but okay for debugging
             const payloadData = encoder.encode(payload);
 
             try {
@@ -234,11 +228,8 @@ export async function middleware(request: NextRequest) {
                     .join('');
 
                 if (sig !== expectedSig) {
-                    console.warn(`[BLOCKED] Invalid proof signature from ${clientIP}. Received: ${sig.substring(0, 5)}..., Expected: ${expectedSig.substring(0, 5)}...`);
-                    console.warn(`[DEBUG_MW] Payload used: ${payload}`);
+                    console.warn(`[BLOCKED] Invalid proof signature from ${clientIP}`);
                     return new NextResponse(JSON.stringify({ error: 'Invalid proof signature', code: 'INVALID_SIG' }), { status: 403 });
-                } else {
-                    console.log(`[DEBUG_MW] Trap signature verified for IP ${clientIP}`);
                 }
             } catch (e) {
                 console.error('Crypto error in middleware', e);

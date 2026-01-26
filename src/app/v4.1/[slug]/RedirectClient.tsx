@@ -33,6 +33,7 @@ export default function RedirectClient({ slug, urls }: RedirectClientProps) {
 
     // Trap Loading State
     const [trapLoaded, setTrapLoaded] = useState(false);
+    const trapLoadedRef = useRef(false);
 
     // Turnstile ref (for V4 Turnstile mode)
     const turnstileContainerRef = useRef<HTMLDivElement>(null);
@@ -176,21 +177,14 @@ export default function RedirectClient({ slug, urls }: RedirectClientProps) {
             }
 
             // Ensure Resource Trap is loaded (for Cloudflare mode)
+            // Ensure Resource Trap is loaded (for Cloudflare mode)
             if (CAPTCHA_CONFIG.own === 2) {
-                console.log(`[DEBUG] Checking Trap Load State: ${trapLoaded}`);
-                if (!trapLoaded) {
-                    console.log('[DEBUG] Trap not loaded yet, waiting...');
+                if (!trapLoadedRef.current) {
                     // Wait for trap to load (max 3s)
                     for (let i = 0; i < 30; i++) {
-                        if (trapLoaded) {
-                            console.log('[DEBUG] Trap loaded after wait.');
-                            break;
-                        }
+                        if (trapLoadedRef.current) break;
                         await new Promise(r => setTimeout(r, 100));
                     }
-                    if (!trapLoaded) console.warn('[DEBUG] Trap wait timed out, proceeding anyway.');
-                } else {
-                    console.log('[DEBUG] Trap already loaded.');
                 }
             }
 
@@ -328,12 +322,12 @@ export default function RedirectClient({ slug, urls }: RedirectClientProps) {
                             className="absolute opacity-0 w-px h-px pointer-events-none"
                             aria-hidden="true"
                             onLoad={() => {
-                                console.log('[DEBUG] Trap Image Loaded');
                                 setTrapLoaded(true);
+                                trapLoadedRef.current = true;
                             }}
-                            onError={(e) => {
-                                console.error('[DEBUG] Trap Image Failed to Load', e);
+                            onError={() => {
                                 setTrapLoaded(true);
+                                trapLoadedRef.current = true;
                             }}
                         />
 
