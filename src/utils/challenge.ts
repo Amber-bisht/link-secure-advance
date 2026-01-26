@@ -13,8 +13,8 @@ const ROTATION_INTERVAL = 30 * 1000;
 // Challenge expiration time (5 minutes)
 const CHALLENGE_EXPIRATION = 5 * 60 * 1000;
 
-// Timing tolerance for clock skew (±5 seconds)
-const TIMING_TOLERANCE = 5 * 1000;
+// Timing tolerance for clock skew (±60 seconds)
+const TIMING_TOLERANCE = 60 * 1000;
 
 // Proof-of-work difficulty (leading hex zeros). Tune based on traffic.
 const DEFAULT_DIFFICULTY = 3;
@@ -170,8 +170,11 @@ export async function verifyClientProof(
     const challenge = challengeResult.challenge;
 
     // Bind to IP (best-effort) to reduce token reuse across IPs
+    // RELAXED FOR MOBILE: IP rotation is common on mobile networks. 
+    // We log the mismatch but do NOT fail the verification.
     if (ip && challenge.ip && ip !== challenge.ip) {
-        return { valid: false, error: 'IP mismatch' };
+        console.warn(`[CHALLENGE] IP Mismatch detected (stored: ${challenge.ip}, current: ${ip}). Allowed for mobile compatibility.`);
+        // return { valid: false, error: 'IP mismatch' };
     }
 
     // Optional UA binding (only if stored at creation time)

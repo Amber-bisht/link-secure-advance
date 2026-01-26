@@ -23,9 +23,12 @@ export async function GET(request: NextRequest) {
             );
         }
 
+
         // Bind UA (optional, but helps reduce replay across different clients)
         // Stored on server only; client doesn't need it.
-        challenge.uaHash = require('crypto').createHash('sha256').update(userAgent).digest('hex');
+        const crypto = require('crypto');
+        challenge.uaHash = crypto.createHash('sha256').update(userAgent).digest('hex');
+        await challenge.save();
 
         // Return challenge data to client (NO server secret shipped)
         return NextResponse.json({
