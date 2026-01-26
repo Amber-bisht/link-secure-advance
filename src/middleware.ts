@@ -296,11 +296,12 @@ export async function middleware(request: NextRequest) {
     response.headers.set(
         'Content-Security-Policy',
         "default-src 'self'; " +
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com https://challenges.cloudflare.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.googletagmanager.com https://www.clarity.ms https://*.clarity.ms; " +
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://static.cloudflareinsights.com https://challenges.cloudflare.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.googletagmanager.com https://www.clarity.ms https://*.clarity.ms; " +
+        "worker-src 'self' blob:; " +
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
         "font-src 'self' https://fonts.gstatic.com; " +
         "img-src 'self' data: https: blob: https://www.googletagmanager.com; " +
-        "connect-src 'self' https://captcha-p.asprin.dev https://links.asprin.dev https://cloudflareinsights.com https://*.cloudflare.com https://www.google-analytics.com https://www.clarity.ms https://*.clarity.ms; " +
+        "connect-src 'self' https://captcha-p.asprin.dev https://links.asprin.dev https://cloudflareinsights.com https://challenges.cloudflare.com https://*.cloudflare.com https://www.google-analytics.com https://www.clarity.ms https://*.clarity.ms; " +
         "frame-src 'self' https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/ https://challenges.cloudflare.com; " +
         "frame-ancestors 'none'; " +
         "base-uri 'self'; " +
