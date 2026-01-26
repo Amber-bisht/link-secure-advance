@@ -151,11 +151,19 @@ export default function V4RedirectPage() {
             }
 
             // Ensure Resource Trap is loaded (for Cloudflare mode)
-            if (CAPTCHA_CONFIG.own === 2 && !trapLoaded) {
-                // Wait for trap to load (max 3s)
-                for (let i = 0; i < 30; i++) {
-                    if (trapLoaded) break;
-                    await new Promise(r => setTimeout(r, 100));
+            if (CAPTCHA_CONFIG.own === 2) {
+                console.log(`[DEBUG_V4] Checking Trap Load State: ${trapLoaded}`);
+                if (!trapLoaded) {
+                    console.log('[DEBUG_V4] Trap not loaded yet, waiting...');
+                    // Wait for trap to load (max 3s)
+                    for (let i = 0; i < 30; i++) {
+                        if (trapLoaded) {
+                            console.log('[DEBUG_V4] Trap loaded after wait.');
+                            break;
+                        }
+                        await new Promise(r => setTimeout(r, 100));
+                    }
+                    if (!trapLoaded) console.warn('[DEBUG_V4] Trap wait timed out, proceeding anyway.');
                 }
             }
 
@@ -179,6 +187,13 @@ export default function V4RedirectPage() {
 
             if (!response.ok) {
                 setError(data.error || 'Failed to verify. Please try again.');
+                setStatus('error');
+                return;
+            }
+
+            if (!data.url || !data.url.startsWith('http')) {
+                console.error('[DEBUG_V4] Invalid redirect URL received:', data.url);
+                setError('Invalid destination URL received');
                 setStatus('error');
                 return;
             }
@@ -302,8 +317,14 @@ export default function V4RedirectPage() {
                             alt=""
                             className="absolute opacity-0 w-px h-px pointer-events-none"
                             aria-hidden="true"
-                            onLoad={() => setTrapLoaded(true)}
-                            onError={() => setTrapLoaded(true)} // Proceed even if error, middleware will handle block
+                            onLoad={() => {
+                                console.log('[DEBUG_V4] Trap Image Loaded');
+                                setTrapLoaded(true);
+                            }}
+                            onError={(e) => {
+                                console.error('[DEBUG_V4] Trap Image Failed to Load', e);
+                                setTrapLoaded(true);
+                            }} // Proceed even if error, middleware will handle block
                         />
 
                         {/* Honeypot: Hidden link for bots to click.
