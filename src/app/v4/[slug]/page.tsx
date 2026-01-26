@@ -36,6 +36,7 @@ export default function V4RedirectPage() {
 
     // Trap Loading State
     const [trapLoaded, setTrapLoaded] = useState(false);
+    const trapLoadedRef = useRef(false);
 
     // Turnstile ref (for V4 Turnstile mode)
     const turnstileContainerRef = useRef<HTMLDivElement>(null);
@@ -152,18 +153,18 @@ export default function V4RedirectPage() {
 
             // Ensure Resource Trap is loaded (for Cloudflare mode)
             if (CAPTCHA_CONFIG.own === 2) {
-                console.log(`[DEBUG_V4] Checking Trap Load State: ${trapLoaded}`);
-                if (!trapLoaded) {
+                console.log(`[DEBUG_V4] Checking Trap Load State: ${trapLoadedRef.current}`);
+                if (!trapLoadedRef.current) {
                     console.log('[DEBUG_V4] Trap not loaded yet, waiting...');
                     // Wait for trap to load (max 3s)
                     for (let i = 0; i < 30; i++) {
-                        if (trapLoaded) {
+                        if (trapLoadedRef.current) {
                             console.log('[DEBUG_V4] Trap loaded after wait.');
                             break;
                         }
                         await new Promise(r => setTimeout(r, 100));
                     }
-                    if (!trapLoaded) console.warn('[DEBUG_V4] Trap wait timed out, proceeding anyway.');
+                    if (!trapLoadedRef.current) console.warn('[DEBUG_V4] Trap wait timed out, proceeding anyway.');
                 }
             }
 
@@ -322,10 +323,12 @@ export default function V4RedirectPage() {
                             onLoad={() => {
                                 console.log('[DEBUG_V4] Trap Image Loaded');
                                 setTrapLoaded(true);
+                                trapLoadedRef.current = true;
                             }}
                             onError={(e) => {
                                 console.error('[DEBUG_V4] Trap Image Failed to Load', e);
                                 setTrapLoaded(true);
+                                trapLoadedRef.current = true;
                             }} // Proceed even if error, middleware will handle block
                         />
 
