@@ -176,11 +176,21 @@ export default function RedirectClient({ slug, urls }: RedirectClientProps) {
             }
 
             // Ensure Resource Trap is loaded (for Cloudflare mode)
-            if (CAPTCHA_CONFIG.own === 2 && !trapLoaded) {
-                // Wait for trap to load (max 3s)
-                for (let i = 0; i < 30; i++) {
-                    if (trapLoaded) break;
-                    await new Promise(r => setTimeout(r, 100));
+            if (CAPTCHA_CONFIG.own === 2) {
+                console.log(`[DEBUG] Checking Trap Load State: ${trapLoaded}`);
+                if (!trapLoaded) {
+                    console.log('[DEBUG] Trap not loaded yet, waiting...');
+                    // Wait for trap to load (max 3s)
+                    for (let i = 0; i < 30; i++) {
+                        if (trapLoaded) {
+                            console.log('[DEBUG] Trap loaded after wait.');
+                            break;
+                        }
+                        await new Promise(r => setTimeout(r, 100));
+                    }
+                    if (!trapLoaded) console.warn('[DEBUG] Trap wait timed out, proceeding anyway.');
+                } else {
+                    console.log('[DEBUG] Trap already loaded.');
                 }
             }
 
@@ -315,8 +325,14 @@ export default function RedirectClient({ slug, urls }: RedirectClientProps) {
                             alt=""
                             className="absolute opacity-0 w-px h-px pointer-events-none"
                             aria-hidden="true"
-                            onLoad={() => setTrapLoaded(true)}
-                            onError={() => setTrapLoaded(true)}
+                            onLoad={() => {
+                                console.log('[DEBUG] Trap Image Loaded');
+                                setTrapLoaded(true);
+                            }}
+                            onError={(e) => {
+                                console.error('[DEBUG] Trap Image Failed to Load', e);
+                                setTrapLoaded(true);
+                            }}
                         />
 
                         {/* Honeypot */}
