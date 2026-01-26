@@ -15,17 +15,21 @@ export async function GET(request: NextRequest) {
         'base64'
     );
 
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-        request.headers.get('x-real-ip') ||
-        'unknown';
+    // Create a unique nonce for this session/request
+    // This proves the client actually hit this endpoint (Proof of Work/Visit)
+    // We bind to a nonce instead of IP to avoid false positives with dynamic IPs (mobile/IPv6)
+    const nonce = crypto.randomUUID().replace(/-/g, '');
 
-    // Create a time-limited signature valid for this IP
     // We rotate the proof every hour to prevent long-term replay, 
     // but allow it to persist for the session.
     const timestamp = Math.floor(Date.now() / 3600000); // Hourly bucket
-    const payload = `trap-proof:${ip}:${timestamp}`;
+
+    // Payload: trap-proof:{nonce}:{timestamp}
+    const payload = `trap-proof:${nonce}:${timestamp}`;
     const signature = sign(payload);
-    const token = `${timestamp}.${signature}`; // Simple token: [time].[sig]
+
+    // Token format: [nonce].[timestamp].[sig]
+    const token = `${nonce}.${timestamp}.${signature}`;
 
     const response = new NextResponse(imageBuffer, {
         headers: {
@@ -37,7 +41,6 @@ export async function GET(request: NextRequest) {
     });
 
     // Set the proof cookie
-    // HttpOnly = false? No, we need it in middleware, which reads cookies. 
     // HttpOnly = true is safer so JS can't read it (bot script can't steal it easily from DOM).
     response.cookies.set({
         name: 'cf_trap_proof',

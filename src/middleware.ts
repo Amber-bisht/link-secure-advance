@@ -176,8 +176,19 @@ export async function middleware(request: NextRequest) {
             }
 
             // Verify signature
-            const [timestampStr, sig] = proofCookie.value.split('.');
-            if (!timestampStr || !sig) {
+            const parts = proofCookie.value.split('.');
+            let nonce = '';
+            let timestampStr = '';
+            let sig = '';
+
+            if (parts.length === 3) {
+                [nonce, timestampStr, sig] = parts;
+            } else {
+                // Invalid format (likely old cookie or tampered)
+                return new NextResponse(JSON.stringify({ error: 'Invalid proof format', code: 'INVALID_PROOF_FMT' }), { status: 403 });
+            }
+
+            if (!nonce || !timestampStr || !sig) {
                 return new NextResponse(JSON.stringify({ error: 'Invalid proof', code: 'INVALID_PROOF' }), { status: 403 });
             }
 
@@ -193,7 +204,7 @@ export async function middleware(request: NextRequest) {
             // Web Crypto API HMAC Verification
             const encoder = new TextEncoder();
             const secretKeyData = encoder.encode(secret);
-            const payload = `trap-proof:${clientIP}:${timestampStr}`;
+            const payload = `trap-proof:${nonce}:${timestampStr}`;
             const payloadData = encoder.encode(payload);
 
             try {
