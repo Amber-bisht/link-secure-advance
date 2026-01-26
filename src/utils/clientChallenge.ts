@@ -24,7 +24,10 @@ interface ChallengeData {
  */
 export async function fetchChallenge(): Promise<Challenge | null> {
     try {
-        const response = await fetch('/api/challenge');
+        const response = await fetch('/api/challenge', {
+            cache: 'no-store',
+            headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' }
+        });
 
         if (!response.ok) {
             console.error('Failed to fetch challenge:', response.statusText);

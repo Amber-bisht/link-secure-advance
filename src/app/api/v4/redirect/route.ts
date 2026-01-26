@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
         // Ensure timing is recent (within 60s)
         if (timing) {
             const requestAge = Date.now() - timing;
-            if (requestAge > 60000) { // 60 seconds max age
+            if (requestAge > 120000) { // 120 seconds max age
                 console.log(`[SECURITY] Request too old: ${requestAge}ms`);
                 const ip = getClientIp(request);
                 await SuspiciousIP.create({

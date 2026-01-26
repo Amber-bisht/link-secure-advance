@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateChallenge } from '@/utils/challenge';
 import { getClientIp } from '@/utils/ip';
 
+
+export const dynamic = 'force-dynamic';
+
 /**
  * Challenge Generation Endpoint
  * GET /api/challenge
