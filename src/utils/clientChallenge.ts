@@ -196,3 +196,44 @@ export async function getChallenge(): Promise<{ data: ChallengeData; headers: Re
         }
     };
 }
+
+/**
+ * Encrypt payload using the challenge nonce (Client-side)
+ * Uses AES-GCM via Web Crypto API
+ */
+export async function encryptPayload(data: any, nonce: string): Promise<{ encrypted: string; iv: string }> {
+    const encoder = new TextEncoder();
+    const encodedData = encoder.encode(JSON.stringify(data));
+
+    // Derive key from nonce (SHA-256)
+    const keyMaterial = encoder.encode(nonce);
+    const keyHash = await crypto.subtle.digest('SHA-256', keyMaterial);
+    const key = await crypto.subtle.importKey(
+        'raw',
+        keyHash,
+        { name: 'AES-GCM' },
+        false,
+        ['encrypt']
+    );
+
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+
+    const encryptedContent = await crypto.subtle.encrypt(
+        { name: 'AES-GCM', iv },
+        key,
+        encodedData
+    );
+
+    // Convert to hex
+    const encryptedBytes = new Uint8Array(encryptedContent);
+    const encryptedHex = Array.from(encryptedBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+    // Note: WebCrypto AES-GCM output includes the auth tag appended to the ciphertext automatically? 
+    // actually, most implementations do. Let's verify standard behavior.
+    // Standard Web Crypto AES-GCM encrypt() returns ciphertext + tag appended.
+    // Node.js createDecipheriv expects them separate or handled specifically.
+    // We will separate them on the server side (last 16 bytes = 128 bits tag).
+
+    const ivHex = Array.from(iv).map(b => b.toString(16).padStart(2, '0')).join('');
+
+    return { encrypted: encryptedHex, iv: ivHex };
+}

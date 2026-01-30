@@ -24,8 +24,11 @@ export async function GET(request: NextRequest) {
     // but allow it to persist for the session.
     const timestamp = Math.floor(Date.now() / 3600000); // Hourly bucket
 
-    // Payload: trap-proof:{nonce}:{timestamp}
-    const payload = `trap-proof:${nonce}:${timestamp}`;
+    const url = new URL(request.url);
+    const kid = url.searchParams.get('kid') || 'nokid';
+
+    // Payload: trap-proof:{nonce}:{timestamp}:{kid}
+    const payload = `trap-proof:${nonce}:${timestamp}:${kid}`;
     const signature = sign(payload);
 
     // Token format: [nonce].[timestamp].[sig]
@@ -42,8 +45,9 @@ export async function GET(request: NextRequest) {
 
     // Set the proof cookie
     // HttpOnly = true is safer so JS can't read it (bot script can't steal it easily from DOM).
+    const cookieName = process.env.TRAP_COOKIE_NAME || 'cf_trap_proof_v4';
     response.cookies.set({
-        name: 'cf_trap_proof',
+        name: cookieName,
         value: token,
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',

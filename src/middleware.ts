@@ -160,82 +160,10 @@ export async function middleware(request: NextRequest) {
             });
         }
 
-        // B. Resource Trap Verification (Proof of Image Load)
-        // Only enforce on the actual verification/redirect APIs
-        const path = request.nextUrl.pathname;
-        if (path === '/api/v4/redirect' || path === '/api/v4.1/visit') {
-            const proofCookie = request.cookies.get('cf_trap_proof');
+        // B. Resource Trap Verification
+        // Moved to specific route handlers (v4/redirect/route.ts) to support challenge_id binding
+        /// and body parsing which is difficult in edge middleware.
 
-            if (!proofCookie) {
-                // No proof cookie = bypassed image load = bot
-                console.warn(`[BLOCKED] Missing resource proof from ${clientIP}`);
-                return new NextResponse(JSON.stringify({ error: 'Security verification failed (Resource missing)', code: 'RESOURCE_TRAP' }), {
-                    status: 403,
-                    headers: { 'Content-Type': 'application/json' }
-                });
-            }
-
-            // Verify signature
-            const parts = proofCookie.value.split('.');
-
-            let nonce = '';
-            let timestampStr = '';
-            let sig = '';
-
-            if (parts.length === 3) {
-                [nonce, timestampStr, sig] = parts;
-            } else {
-                return new NextResponse(JSON.stringify({ error: 'Invalid proof format', code: 'INVALID_PROOF_FMT' }), { status: 403 });
-            }
-
-            if (!nonce || !timestampStr || !sig) {
-                return new NextResponse(JSON.stringify({ error: 'Invalid proof', code: 'INVALID_PROOF' }), { status: 403 });
-            }
-
-            const secret = process.env.CHALLENGE_SECRET || process.env.TOKEN_VALIDATION_SECRET || 'fallback-trap-secret';
-            const timestamp = parseInt(timestampStr);
-            const currentBucket = Math.floor(Date.now() / 3600000);
-
-            // Check if proof is expired (allow 2 hour window: current and previous hour)
-            if (currentBucket - timestamp > 1) {
-                return new NextResponse(JSON.stringify({ error: 'Proof expired', code: 'EXPIRED_PROOF' }), { status: 403 });
-            }
-
-            // Web Crypto API HMAC Verification
-            const encoder = new TextEncoder();
-            const secretKeyData = encoder.encode(secret);
-            const payload = `trap-proof:${nonce}:${timestampStr}`;
-            const payloadData = encoder.encode(payload);
-
-            try {
-                const key = await crypto.subtle.importKey(
-                    'raw',
-                    secretKeyData,
-                    { name: 'HMAC', hash: 'SHA-256' },
-                    false,
-                    ['sign']
-                );
-
-                const signatureBuffer = await crypto.subtle.sign(
-                    'HMAC',
-                    key,
-                    payloadData
-                );
-
-                // Convert buffer to hex string
-                const expectedSig = Array.from(new Uint8Array(signatureBuffer))
-                    .map(b => b.toString(16).padStart(2, '0'))
-                    .join('');
-
-                if (sig !== expectedSig) {
-                    console.warn(`[BLOCKED] Invalid proof signature from ${clientIP}`);
-                    return new NextResponse(JSON.stringify({ error: 'Invalid proof signature', code: 'INVALID_SIG' }), { status: 403 });
-                }
-            } catch (e) {
-                console.error('Crypto error in middleware', e);
-                return new NextResponse(JSON.stringify({ error: 'Security validation error', code: 'CRYPTO_ERR' }), { status: 500 });
-            }
-        }
     }
 
     // =====================================================

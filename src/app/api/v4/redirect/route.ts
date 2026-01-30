@@ -4,7 +4,7 @@ import { verifyCustomCaptcha } from '@/utils/captcha';
 import { verifyTurnstile } from '@/utils/turnstile';
 import { CAPTCHA_CONFIG } from '@/config/captcha';
 import dbConnect from '@/lib/db';
-import SuspiciousIP from '@/models/SuspiciousIP';
+
 import { getClientIp } from '@/utils/ip';
 import { verifyRequestSignature } from '@/utils/requestIntegrity';
 // Phase B Security Enhancements
@@ -23,6 +23,16 @@ setInterval(() => {
         }
     }
 }, 30000);
+
+// Use an existing secret or fallback (Must match trap/image/route.ts)
+// Use an existing secret or fallback (Must match trap/image/route.ts)
+const TRAP_SECRET = process.env.CHALLENGE_SECRET || process.env.TOKEN_VALIDATION_SECRET || 'fallback-trap-secret';
+const TRAP_COOKIE_NAME = process.env.TRAP_COOKIE_NAME || 'cf_trap_proof_v4';
+
+function signTrap(value: string): string {
+    const crypto = require('crypto');
+    return crypto.createHmac('sha256', TRAP_SECRET).update(value).digest('hex');
+}
 
 export async function POST(request: NextRequest) {
     try {
@@ -48,30 +58,92 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { slug, captchaToken, challenge_id, timing, entropy, counter, _sig, _ts } = body;
+        const { challenge_id, encrypted, iv } = body;
+
+        // Decryption Layer:
+        // 1. Look up challenge to get nonce
+        if (!challenge_id || !encrypted || !iv) {
+            return NextResponse.json({ error: 'Invalid payload format (Encryption required)' }, { status: 400 });
+        }
+
+        const { verifyChallenge, decryptPayload } = await import('@/utils/challenge');
+
+        // We verify purely to get the nonce securely (and check expiry)
+        const challengeResult = await verifyChallenge(challenge_id);
+        if (!challengeResult.valid || !challengeResult.challenge) {
+            return NextResponse.json({ error: 'Security Session Expired' }, { status: 403 });
+        }
+
+        const nonce = challengeResult.challenge.nonce;
+        let decryptedBody;
+        try {
+            decryptedBody = await decryptPayload(encrypted, iv, nonce);
+        } catch (e) {
+            console.error('Decryption failed', e);
+            return NextResponse.json({ error: 'Decryption failed' }, { status: 400 });
+        }
+
+        const { slug, captchaToken, timing, entropy, counter, _sig, _ts } = decryptedBody;
+
+        // Ensure challenge_id from body matches challenge_id in decrypted payload if present? 
+        // Actually, the decrypted payload usually contains what we signed. 
+        // In page.tsx we put challenge_id inside payload too. Let's verify match.
+        if (decryptedBody.challenge_id !== challenge_id) {
+            return NextResponse.json({ error: 'Session mismatch' }, { status: 403 });
+        }
 
         // ===== Phase B: Request Timestamp Validation =====
         // Ensure timing is recent (within 60s)
         if (timing) {
             const requestAge = Date.now() - timing;
             if (requestAge > 120000) { // 120 seconds max age
-                console.log(`[SECURITY] Request too old: ${requestAge}ms`);
-                const ip = getClientIp(request);
-                await SuspiciousIP.create({
-                    ipAddress: ip,
-                    reason: `Stale request: ${Math.round(requestAge / 1000)}s old`
-                });
                 return NextResponse.json(
                     { error: 'Request expired. Please refresh and try again.' },
                     { status: 403 }
                 );
             }
             if (requestAge < -5000) { // 5s tolerance for clock skew
-                console.log(`[SECURITY] Request from future: ${requestAge}ms`);
                 return NextResponse.json(
                     { error: 'Invalid request timing' },
                     { status: 403 }
                 );
+            }
+        }
+
+        // ===== Security Layer -1: Trap Cookie Verification (Bot Killer) =====
+        // Check if the client has loaded the trap image (thus proving they load images)
+        if (CAPTCHA_CONFIG.own === 2) {
+            const trapCookie = request.cookies.get(TRAP_COOKIE_NAME);
+
+            if (!trapCookie) {
+                // Bot detected (blocked image loading)
+                return NextResponse.json({ error: 'Security Check Failed: Resources not loaded' }, { status: 403 });
+            }
+
+            try {
+                const [nonce, timestampStr, signature] = trapCookie.value.split('.');
+                const timestamp = parseInt(timestampStr, 10);
+
+                // 1. Verify Signature (now includes challenge_id as kid)
+                // challenge_id is passed in the body
+                const kid = challenge_id || 'nokid';
+                const payload = `trap-proof:${nonce}:${timestamp}:${kid}`;
+                const expectedSignature = signTrap(payload);
+
+                if (signature !== expectedSignature) {
+                    // console.log(`[TRAP ERROR] Sig Mismatch. KID: ${kid.substring(0,8)}. ClientIp: ${getClientIp(request)}`);
+                    // Debug: expectedSignature, signature
+                    return NextResponse.json({ error: 'Security Check Failed: Invalid proof signature' }, { status: 403 });
+                }
+
+                // 2. Verify Freshness (1 hour)
+                const currentHour = Math.floor(Date.now() / 3600000);
+                if (Math.abs(currentHour - timestamp) > 1) { // Allow 1 hour drift
+                    return NextResponse.json({ error: 'Security Check Failed: Proof expired' }, { status: 403 });
+                }
+
+            } catch (e) {
+                return NextResponse.json({ error: 'Security Check Failed: Malformed proof' }, { status: 403 });
             }
         }
 
@@ -100,11 +172,6 @@ export async function POST(request: NextRequest) {
 
             if (!sigResult.valid) {
                 console.log(`[SECURITY] Request signature verification failed: ${sigResult.error}`);
-                const ip = getClientIp(request);
-                await SuspiciousIP.create({
-                    ipAddress: ip,
-                    reason: `Request tampering detected: ${sigResult.error}`
-                });
                 return NextResponse.json(
                     { error: 'Request integrity verification failed' },
                     { status: 403 }
@@ -155,10 +222,6 @@ export async function POST(request: NextRequest) {
         const tokenUsageCheck = isTokenUsed(captchaToken);
         if (tokenUsageCheck.used) {
             console.log(`[SECURITY] Token replay attack from ${clientIp}, original IP: ${tokenUsageCheck.originalIp}`);
-            await SuspiciousIP.create({
-                ipAddress: clientIp,
-                reason: `Token replay attack (original: ${tokenUsageCheck.originalIp})`
-            });
             return NextResponse.json(
                 { error: 'Token already used. Please complete a new CAPTCHA.' },
                 { status: 403 }
@@ -170,10 +233,6 @@ export async function POST(request: NextRequest) {
             const tokenValidation = await validateCaptchaToken(captchaToken, clientIp, requestFingerprint);
             if (!tokenValidation.valid) {
                 console.log(`[SECURITY] Token validation failed: ${tokenValidation.error}`);
-                await SuspiciousIP.create({
-                    ipAddress: clientIp,
-                    reason: `Token validation failed: ${tokenValidation.error}`
-                });
                 return NextResponse.json(
                     { error: tokenValidation.error || 'Token validation failed' },
                     { status: 403 }
@@ -196,13 +255,6 @@ export async function POST(request: NextRequest) {
         }
 
         if (!isCaptchaValid) {
-            // Log Suspicious IP
-            const ip = getClientIp(request);
-            await SuspiciousIP.create({
-                ipAddress: ip,
-                reason: 'Captcha verification failed (V4)'
-            });
-
             return NextResponse.json(
                 { error: 'CAPTCHA verification failed. Please try again.' },
                 { status: 403 }
@@ -212,19 +264,6 @@ export async function POST(request: NextRequest) {
         // Mark request as processed (after all validations pass)
         processedRequests.set(requestHash, Date.now());
 
-        // Security Check: Too many recent failures?
-        const ip = getClientIp(request);
-        const recentFailures = await SuspiciousIP.countDocuments({
-            ipAddress: ip,
-            createdAt: { $gt: new Date(Date.now() - 60 * 60 * 1000) } // Last 1 hour
-        });
-
-        if (recentFailures >= 500) {
-            return NextResponse.json(
-                { error: 'Too many failed attempts. Please try again later.' },
-                { status: 403 }
-            );
-        }
 
         // Decode the V4 link
         const decodedUrl = decodeLinkV4(slug);

@@ -10,7 +10,7 @@ import { ShieldCheck, AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { CAPTCHA_CONFIG } from "@/config/captcha";
 import Script from "next/script";
 import dynamic from "next/dynamic";
-import { fetchChallenge, prepareChallengeData } from "@/utils/clientChallenge";
+import { fetchChallenge, prepareChallengeData, encryptPayload } from "@/utils/clientChallenge";
 import type { Challenge } from "@/utils/clientChallenge";
 import { initAntiInspect } from "@/utils/antiDebugging";
 
@@ -50,6 +50,11 @@ export default function V4RedirectPage() {
                 if (!challengeData) {
                     throw new Error('Failed to obtain security challenge');
                 }
+
+                // Reset trap state for new challenge
+                setTrapLoaded(false);
+                trapLoadedRef.current = false;
+
                 setChallenge(challengeData);
 
                 // Step 1: Checking
@@ -139,7 +144,11 @@ export default function V4RedirectPage() {
             let currentChallenge = challenge;
             if (!currentChallenge) {
                 currentChallenge = await fetchChallenge();
-                if (currentChallenge) setChallenge(currentChallenge);
+                if (currentChallenge) {
+                    setTrapLoaded(false);
+                    trapLoadedRef.current = false;
+                    setChallenge(currentChallenge);
+                }
             }
 
             if (!currentChallenge) {
@@ -162,6 +171,18 @@ export default function V4RedirectPage() {
                 }
             }
 
+            // Encrypt the sensitive payload using the challenge nonce
+            const payloadToEncrypt = {
+                slug: slug,
+                captchaToken: captchaToken,
+                challenge_id: challengeData.challenge_id,
+                timing: challengeData.timing,
+                entropy: challengeData.entropy,
+                counter: challengeData.counter
+            };
+
+            const encryptedData = await encryptPayload(payloadToEncrypt, currentChallenge.nonce);
+
             const response = await fetch('/api/v4/redirect', {
                 method: 'POST',
                 headers: {
@@ -169,12 +190,9 @@ export default function V4RedirectPage() {
                     'X-Client-Proof': challengeData.proof
                 },
                 body: JSON.stringify({
-                    slug: slug,
-                    captchaToken: captchaToken,
-                    challenge_id: challengeData.challenge_id,
-                    timing: challengeData.timing,
-                    entropy: challengeData.entropy,
-                    counter: challengeData.counter
+                    challenge_id: challengeData.challenge_id, // Needed to lookup nonce
+                    encrypted: encryptedData.encrypted,
+                    iv: encryptedData.iv
                 }),
             });
 
@@ -309,20 +327,25 @@ export default function V4RedirectPage() {
                     <>
                         {/* Resource Trap: Loads a 1x1 image to set a proof cookie.
                             Bots blocking images will fail to get this cookie. */}
-                        <img
-                            src="/api/trap/image"
-                            alt=""
-                            className="absolute opacity-0 w-px h-px pointer-events-none"
-                            aria-hidden="true"
-                            onLoad={() => {
-                                setTrapLoaded(true);
-                                trapLoadedRef.current = true;
-                            }}
-                            onError={() => {
-                                setTrapLoaded(true);
-                                trapLoadedRef.current = true;
-                            }} // Proceed even if error, middleware will handle block
-                        />
+                        {/* Resource Trap: Loads a 1x1 image to set a proof cookie.
+                            Bots blocking images will fail to get this cookie.
+                             We bind the challenge ID to preventing cookie reuse across sessions. */}
+                        {challenge?.challenge_id && (
+                            <img
+                                src={`/api/trap/image?kid=${challenge.challenge_id}`}
+                                alt=""
+                                className="absolute opacity-0 w-px h-px pointer-events-none"
+                                aria-hidden="true"
+                                onLoad={() => {
+                                    setTrapLoaded(true);
+                                    trapLoadedRef.current = true;
+                                }}
+                                onError={() => {
+                                    setTrapLoaded(true);
+                                    trapLoadedRef.current = true;
+                                }}
+                            />
+                        )}
 
                         {/* Honeypot: Hidden link for bots to click.
                             Sets a poison pill cookie if accessed. */}

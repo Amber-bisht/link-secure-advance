@@ -19,9 +19,7 @@ const TIMING_TOLERANCE = 60 * 1000;
 // Proof-of-work difficulty (leading hex zeros). Tune based on traffic.
 const DEFAULT_DIFFICULTY = 3;
 
-// Rate limiting per IP
-const rateLimitStore = new Map<string, number[]>();
-const MAX_CHALLENGES_PER_MINUTE = 10;
+
 
 /**
  * Get the current rotating secret based on time slot
@@ -39,26 +37,7 @@ function uaToHash(ua: string): string {
     return sha256Hex(ua || ''); // stable, non-reversible fingerprint
 }
 
-/**
- * Check if IP is rate limited
- */
-function checkRateLimit(ip: string): boolean {
-    const now = Date.now();
-    const requests = rateLimitStore.get(ip) || [];
 
-    // Filter requests from last minute
-    const recentRequests = requests.filter(timestamp => now - timestamp < 60 * 1000);
-
-    if (recentRequests.length >= MAX_CHALLENGES_PER_MINUTE) {
-        return false; // Rate limited
-    }
-
-    // Add current request
-    recentRequests.push(now);
-    rateLimitStore.set(ip, recentRequests);
-
-    return true;
-}
 
 /**
  * Generate a new challenge
@@ -66,10 +45,7 @@ function checkRateLimit(ip: string): boolean {
 export async function generateChallenge(ip: string): Promise<IChallenge | null> {
     await dbConnect();
 
-    // Check rate limiting
-    if (!checkRateLimit(ip)) {
-        return null;
-    }
+
 
     const challengeSecret = process.env.CHALLENGE_SECRET;
     if (!challengeSecret) {
@@ -169,22 +145,6 @@ export async function verifyClientProof(
 
     const challenge = challengeResult.challenge;
 
-    // Bind to IP (best-effort) to reduce token reuse across IPs
-    // RELAXED FOR MOBILE: IP rotation is common on mobile networks. 
-    // We log the mismatch but do NOT fail the verification.
-    if (ip && challenge.ip && ip !== challenge.ip) {
-        console.warn(`[CHALLENGE] IP Mismatch detected (stored: ${challenge.ip}, current: ${ip}). Allowed for mobile compatibility.`);
-        // return { valid: false, error: 'IP mismatch' };
-    }
-
-    // Optional UA binding (only if stored at creation time)
-    if (challenge.uaHash) {
-        const incomingUaHash = uaToHash(userAgent || '');
-        if (incomingUaHash !== challenge.uaHash) {
-            return { valid: false, error: 'User-Agent mismatch' };
-        }
-    }
-
     // Validate timing (must be within ±5 seconds of server time)
     const now = Date.now();
     const timingDiff = Math.abs(now - timing);
@@ -231,31 +191,30 @@ export async function verifyClientProof(
     return { valid: true };
 }
 
-/**
- * Cleanup old rate limit entries (run periodically)
- */
-function cleanupRateLimits() {
-    const now = Date.now();
-    for (const [ip, timestamps] of rateLimitStore.entries()) {
-        const recentRequests = timestamps.filter(timestamp => now - timestamp < 60 * 1000);
-        if (recentRequests.length === 0) {
-            rateLimitStore.delete(ip);
-        } else {
-            rateLimitStore.set(ip, recentRequests);
-        }
-    }
-}
 
-// Run cleanup every 30 seconds
-setInterval(() => {
-    // Mongo handles challenge cleanup via TTL
-    cleanupRateLimits();
-}, 30 * 1000);
 
 // Export for testing purposes
 export const _testing = {
-    rateLimitStore,
     ROTATION_INTERVAL,
     CHALLENGE_EXPIRATION,
     TIMING_TOLERANCE
 };
+
+/**
+ * Decrypt request payload using the challenge nonce as the key source
+ * Uses AES-256-GCM
+ */
+export async function decryptPayload(encryptedHex: string, ivHex: string, nonce: string): Promise<any> {
+    const key = crypto.createHash('sha256').update(nonce).digest(); // Use nonce as 32-byte key
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(ivHex, 'hex'));
+
+    const authTag = Buffer.from(encryptedHex.slice(-32), 'hex'); // Last 16 bytes (32 hex chars) is auth tag
+    const encryptedText = Buffer.from(encryptedHex.slice(0, -32), 'hex');
+
+    decipher.setAuthTag(authTag);
+
+    let decrypted = decipher.update(encryptedText);
+    decrypted = Buffer.concat([decrypted, decipher.final()]);
+
+    return JSON.parse(decrypted.toString('utf8'));
+}
