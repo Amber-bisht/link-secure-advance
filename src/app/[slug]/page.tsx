@@ -30,14 +30,7 @@ export default function RedirectPage() {
                 <h1 className="text-xl font-bold">links.asprin.dev</h1>
                 <p className="mt-4 text-sm text-zinc-400">
                     made by{' '}
-                    <a
-                        href="https://t.me/happySaturday_bitch"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-zinc-300 hover:text-white transition-colors underline decoration-zinc-700 hover:decoration-white underline-offset-4"
-                    >
-                        asprin dev
-                    </a>
+                    
                     {' '}- version original
                 </p>
             </div>
@@ -50,14 +43,7 @@ export default function RedirectPage() {
             <p className="text-red-400">{error}</p>
             <p className="mt-4 text-sm text-zinc-400">
                 made by{' '}
-                <a
-                    href="https://t.me/happySaturday_bitch"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-zinc-300 hover:text-white transition-colors underline decoration-zinc-700 hover:decoration-white underline-offset-4"
-                >
-                    asprin dev
-                </a>
+                
                 {' '}- version original
             </p>
         </div>

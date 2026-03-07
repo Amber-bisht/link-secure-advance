@@ -293,16 +293,6 @@ export default function ShortPage() {
                                                         <div className={`w-2 h-2 rounded-full animate-pulse ${isExpired ? 'bg-red-500' : 'bg-green-500'}`} />
                                                         <span>{isExpired ? `Subscription Expired on ${validUntil}` : `Premium valid until: ${validUntil}`}</span>
                                                     </div>
-                                                    {isExpired && (
-                                                        <a
-                                                            href="https://t.me/happySaturday_bitch"
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="text-[10px] font-bold uppercase tracking-widest bg-red-500/20 px-3 py-1 rounded-full border border-red-500/20 hover:bg-red-500/30 transition-all whitespace-nowrap"
-                                                        >
-                                                            Add validity for free
-                                                        </a>
-                                                    )}
                                                 </div>
                                             )}
 
@@ -429,15 +419,7 @@ export default function ShortPage() {
                                 </div>
                             </div>
                             <p className="text-sm text-zinc-600 font-medium">
-                                Crafted with passion by{' '}
-                                <a
-                                    href="https://t.me/happySaturday_bitch"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-zinc-400 hover:text-white underline decoration-zinc-800 hover:decoration-purple-500/50 underline-offset-8 transition-all"
-                                >
-                                    asprin dev
-                                </a>
+                                Crafted with passion by Asprin
                             </p>
                         </div>
                     </motion.div>

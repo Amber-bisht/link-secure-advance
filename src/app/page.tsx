@@ -50,14 +50,7 @@ export default function Home() {
             <Link href="/short" className="hover:text-white transition-colors">
               Try /short
             </Link>
-            <a
-              href="https://t.me/happySaturday_bitch"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hidden md:flex items-center gap-2 hover:text-white transition-colors"
-            >
-              Contact <ExternalLink size={14} />
-            </a>
+            
           </div>
         </div>
       </motion.nav>
@@ -89,14 +82,6 @@ export default function Home() {
             >
               Try /short <ArrowRight size={18} />
             </Link>
-            <a
-              href="https://t.me/happySaturday_bitch"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-8 py-3.5 rounded-full bg-white/5 hover:bg-white/10 text-white border border-white/10 transition-all hover:scale-105 font-medium"
-            >
-              Build something custom
-            </a>
           </motion.div>
 
           <motion.div variants={fadeIn} className="pt-8 flex flex-col items-center space-y-4">
@@ -191,7 +176,6 @@ export default function Home() {
                   <div className="bg-neutral-900/80 border border-violet-500/30 p-4 rounded-xl backdrop-blur-sm max-w-sm w-full shadow-lg shadow-violet-900/10">
                     <div className="text-violet-400 font-mono text-xs mb-1 flex items-center gap-2">
                       v4.1 (Next Gen)
-                      <span className="w-2 h-2 bg-violet-500 rounded-full animate-pulse" />
                     </div>
                     <div className="font-semibold text-white">Multi-Platform Integration</div>
                     <div className="text-xs text-neutral-300 mt-1">LinkShortify & Cloudflare Turnstile</div>
@@ -199,6 +183,21 @@ export default function Home() {
                 </div>
                 <div className="absolute left-8 md:left-1/2 w-4 h-4 bg-violet-500 border-2 border-violet-300 rounded-full -translate-x-1/2 shadow-[0_0_20px_rgba(139,92,246,0.5)]" />
                 <div className="md:w-1/2" />
+              </div>
+
+              <div className="relative flex flex-col md:flex-row items-center justify-between group">
+                <div className="md:w-1/2" />
+                <div className="absolute left-8 md:left-1/2 w-4 h-4 bg-fuchsia-500 border-2 border-fuchsia-300 rounded-full -translate-x-1/2 shadow-[0_0_20px_rgba(217,70,239,0.5)]" />
+                <div className="md:w-1/2 flex justify-start md:pl-12 pl-16 w-full">
+                  <div className="bg-neutral-900/80 border border-fuchsia-500/30 p-4 rounded-xl backdrop-blur-sm max-w-sm w-full shadow-lg shadow-fuchsia-900/10">
+                    <div className="text-fuchsia-400 font-mono text-xs mb-1 flex items-center gap-2">
+                      v5.0 (Latest)
+                      <span className="w-2 h-2 bg-fuchsia-500 rounded-full animate-pulse" />
+                    </div>
+                    <div className="font-semibold text-white">Gamified Captcha</div>
+                    <div className="text-xs text-neutral-300 mt-1">Interactive Archery Challenge & HMAC Security</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

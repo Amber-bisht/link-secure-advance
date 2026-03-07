@@ -33,7 +33,7 @@ const faqs: FAQItem[] = [
     },
     {
         question: "Is it free?",
-        answer: "Yes, the core protection features are free to use. We believe in making the web safer for everyone. We may offer premium features for advanced analytics, custom branding, and priority support in the future."
+        answer: "Yes, the core protection features are free to use. We believe in making the web safer for everyone."
     },
     {
         question: "What kind of bots do you block?",
@@ -42,10 +42,6 @@ const faqs: FAQItem[] = [
     {
         question: "Can I track my link performance?",
         answer: "Basic analytics are available now, showing you the number of protected clicks. We are working on a comprehensive dashboard that will provide detailed insights into your traffic sources, geography, and device types."
-    },
-    {
-        question: "Do you support API access?",
-        answer: "API access is currently in development and will be available soon for developers who want to integrate our protection service directly into their applications. Check our 'Coming Up' section for updates!"
     }
 ];
 
@@ -75,14 +71,7 @@ export default function FAQPage() {
                         <Link href="/short" className="hover:text-white transition-colors">
                             Try /short
                         </Link>
-                        <a
-                            href="https://t.me/happySaturday_bitch"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="hidden md:flex items-center gap-2 hover:text-white transition-colors"
-                        >
-                            Contact <ExternalLink size={14} />
-                        </a>
+                        
                     </div>
                 </div>
             </motion.nav>

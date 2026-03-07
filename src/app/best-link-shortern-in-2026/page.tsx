@@ -130,14 +130,7 @@ export default function ComparisonPage() {
                         <Link href="/short" className="hover:text-white transition-colors">
                             Try /short
                         </Link>
-                        <a
-                            href="https://t.me/happySaturday_bitch"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="hidden md:flex items-center gap-2 hover:text-white transition-colors"
-                        >
-                            Contact <ExternalLink size={14} />
-                        </a>
+                        
                     </div>
                 </div>
             </motion.nav>
