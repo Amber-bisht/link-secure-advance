@@ -66,7 +66,7 @@ export function decodeLinkV1(slug: string): string {
 }
 
 // V2 Logic: XOR cipher + Base64 encoding
-const XOR_KEY = 'codewalt2026'; // Secret key for XOR
+const XOR_KEY = process.env.V2_XOR_KEY || 'codewalt2026';
 
 export function encodeLinkV2(url: string): string {
   try {
@@ -175,8 +175,8 @@ export function decodeLinkV3(slug: string): string {
 // Layer 2: Reverse string
 // Layer 3: Byte shuffling with pattern
 // Layer 4: Base64 encoding
-const V4_SECRET_SHIFT = 17; // Caesar cipher shift
-const V4_SHUFFLE_PATTERN = [2, 0, 3, 1]; // Byte shuffle pattern
+const V4_SECRET_SHIFT = parseInt(process.env.V4_SECRET_SHIFT || '17', 10);
+const V4_SHUFFLE_PATTERN = JSON.parse(process.env.V4_SHUFFLE_PATTERN || '[2,0,3,1]');
 
 export function encodeLinkV4(url: string): string {
   try {
@@ -203,7 +203,7 @@ export function encodeLinkV4(url: string): string {
       const chunk = reversed.slice(i, i + 4);
       if (chunk.length === 4) {
         // Shuffle bytes according to pattern
-        const shuffled = V4_SHUFFLE_PATTERN.map(idx => chunk[idx] || '').join('');
+        const shuffled = V4_SHUFFLE_PATTERN.map((idx: number) => chunk[idx] || '').join('');
         chunks.push(shuffled);
       } else {
         // Last chunk might be shorter, don't shuffle
@@ -281,9 +281,9 @@ export function decodeLinkV4(slug: string): string {
 // Layer 3: Reverse string
 // Layer 4: Different byte shuffling pattern
 // Layer 5: Base64 encoding
-const V41_SECRET_SHIFT = 23; // Different shift from V4
-const V41_XOR_KEY = 'iframe2026shield'; // XOR key for additional security
-const V41_SHUFFLE_PATTERN = [3, 1, 0, 2]; // Different pattern from V4
+const V41_SECRET_SHIFT = parseInt(process.env.V41_SECRET_SHIFT || '23', 10);
+const V41_XOR_KEY = process.env.V41_XOR_KEY || 'iframe2026shield';
+const V41_SHUFFLE_PATTERN = JSON.parse(process.env.V41_SHUFFLE_PATTERN || '[3,1,0,2]');
 
 export function encodeLinkV41(url: string): string {
   try {
@@ -316,7 +316,7 @@ export function encodeLinkV41(url: string): string {
     for (let i = 0; i < reversed.length; i += 4) {
       const chunk = reversed.slice(i, i + 4);
       if (chunk.length === 4) {
-        const shuffled = V41_SHUFFLE_PATTERN.map(idx => chunk[idx] || '').join('');
+        const shuffled = V41_SHUFFLE_PATTERN.map((idx: number) => chunk[idx] || '').join('');
         chunks.push(shuffled);
       } else {
         chunks.push(chunk);

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link2, Copy, CheckCircle, ShieldCheck, Lock, LogOut, User as UserIcon } from "lucide-react";
 import { signIn, signOut, useSession } from "next-auth/react";
 
-type Version = 'v4' | 'v4.1';
+type Version = 'v4' | 'v4.1' | 'v5';
 
 const variants = {
     hidden: { opacity: 0, y: 20 },
@@ -46,7 +46,7 @@ export default function ShortPage() {
     // Category switching logic removed as only Advanced is supported now
     useEffect(() => {
         // Enforce v4+ versions
-        if (version !== 'v4' && version !== 'v4.1') {
+        if (version !== 'v4' && version !== 'v4.1' && version !== 'v5') {
             setVersion('v4');
         }
     }, [version]);
@@ -72,10 +72,10 @@ export default function ShortPage() {
             }
 
 
-            // V4 uses server-side API with CAPTCHA, V4.1 uses new API
-            if (version === 'v4' || version === 'v4.1') {
+            // V4/V5 uses server-side API with CAPTCHA, V4.1 uses new API
+            if (version === 'v4' || version === 'v4.1' || version === 'v5') {
                 if (!session) {
-                    throw new Error("You must be logged in to create V4/V4.1 links.");
+                    throw new Error(`You must be logged in to create ${version.toUpperCase()} links.`);
                 }
                 if (isExpired) {
                     throw new Error("Your subscription has expired.");
@@ -101,8 +101,8 @@ export default function ShortPage() {
                 }
 
                 // V4 Logic (No Captcha)
-                if (version === 'v4') {
-                    const response = await fetch('/api/v4', {
+                if (version === 'v4' || version === 'v5') {
+                    const response = await fetch(`/api/${version}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ url: targetUrl }),
@@ -270,7 +270,8 @@ export default function ShortPage() {
                                                 <div className="grid grid-cols-2 gap-3">
                                                     {[
                                                         { id: 'v4', label: 'v4 Captcha', sub: 'Human Verification' },
-                                                        { id: 'v4.1', label: 'v4.1 Multi-Key', sub: 'Redirection Loop' }
+                                                        { id: 'v4.1', label: 'v4.1 Multi-Key', sub: 'Redirection Loop' },
+                                                        { id: 'v5', label: 'v5 Archery', sub: 'Skill Challenge' }
                                                     ].map((opt) => (
                                                         <button
                                                             key={opt.id}
