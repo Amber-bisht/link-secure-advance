@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { encodeLinkV4 } from '@/utils/linkWrapper';
+import { encodeLinkV5 } from '@/utils/linkWrapper';
 import { auth } from '@/auth';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
@@ -38,8 +38,8 @@ export async function POST(request: NextRequest) {
             targetUrl = 'https://' + targetUrl;
         }
 
-        // Generate encoded slug (reusing v4 encoder for consistency in storage/decoding)
-        const slug = encodeLinkV4(targetUrl);
+        // Generate encoded slug (reusing v5 encoder)
+        const slug = encodeLinkV5(targetUrl);
 
         if (!slug) {
             return NextResponse.json({ error: 'Failed to encode URL' }, { status: 500 });

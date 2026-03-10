@@ -391,3 +391,13 @@ export function decodeLinkV41(slug: string): string {
   }
 }
 
+
+// V5 Logic: Reuses V4 logic (CAPTCHA Protected)
+// v5 is reserved for future enhancements, but shared codebase for now
+export function encodeLinkV5(url: string): string {
+  return encodeLinkV4(url);
+}
+
+export function decodeLinkV5(slug: string): string {
+  return decodeLinkV4(slug);
+}

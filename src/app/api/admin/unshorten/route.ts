@@ -7,7 +7,8 @@ import {
     decodeLinkV2,
     decodeLinkV3,
     decodeLinkV4,
-    decodeLinkV41
+    decodeLinkV41,
+    decodeLinkV5
 } from '@/utils/linkWrapper';
 
 export async function POST(request: NextRequest) {
@@ -58,6 +59,10 @@ export async function POST(request: NextRequest) {
             version = 'v4.1';
             const slug = pathname.replace('v4.1/', '');
             originalUrl = decodeLinkV41(slug);
+        } else if (pathname.startsWith('v5/')) {
+            version = 'v5';
+            const slug = pathname.replace('v5/', '');
+            originalUrl = decodeLinkV5(slug);
         } else if (pathname.startsWith('v4/')) {
             version = 'v4';
             const slug = pathname.replace('v4/', '');

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { decodeLinkV4 } from '@/utils/linkWrapper';
+import { decodeLinkV5 } from '@/utils/linkWrapper';
 import { verifyTurnstile } from '@/utils/turnstile';
 import { CAPTCHA_CONFIG } from '@/config/captcha';
 import dbConnect from '@/lib/db';
@@ -162,8 +162,8 @@ export async function POST(request: NextRequest) {
 
         processedRequests.set(requestHash, Date.now());
 
-        // Decode URL (v5 follows v4 logic for now)
-        const decodedUrl = decodeLinkV4(slug);
+        // Decode URL (v5 logic)
+        const decodedUrl = decodeLinkV5(slug);
         if (!decodedUrl) {
             return NextResponse.json({ error: 'Invalid or expired link' }, { status: 400 });
         }
