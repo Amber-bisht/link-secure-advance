@@ -186,7 +186,7 @@ export default function ShortPage() {
             </nav>
 
             <a
-                href="https://t.me/asprin_devs"
+                href="https://amberbisht.me"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full bg-gradient-to-r from-purple-900/50 to-blue-900/50 border-y border-white/5 py-3 px-4 text-center cursor-pointer hover:bg-white/5 transition-all"
